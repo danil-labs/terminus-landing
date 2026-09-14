@@ -38,7 +38,7 @@ import "../styles/global.css";
  * reciente, que es la que GitHub resuelve sola. Un número aquí se queda viejo
  * el día que se publique la siguiente, y nadie se acuerda de venir a cambiarlo.
  */
-const RELEASES = "https://github.com/soydanil/terminus/releases/latest";
+const RELEASES = "https://github.com/danil-labs/terminus/releases/latest";
 /**
  * **Nombre estable, sin versión dentro.** Escribir
  * `Terminus_0.1.3_x64-setup.exe` aquí rompe el botón el día que salga la
@@ -64,7 +64,7 @@ const ICONO = "/marca/terminus-icono.png";
  */
 const DESCARGA_MAC = `${RELEASES}/download/Terminus-macOS.dmg`;
 /** El repositorio público de Terminus. */
-const REPO = "https://github.com/soydanil/terminus";
+const REPO = "https://github.com/danil-labs/terminus";
 /**
  * La versión publicada, preguntada a GitHub **al compilar**.
  *
@@ -88,7 +88,7 @@ const REPO = "https://github.com/soydanil/terminus";
 async function versionPublicada(): Promise<string | null> {
   try {
     const r = await fetch(
-      "https://api.github.com/repos/soydanil/terminus/releases/latest",
+      "https://api.github.com/repos/danil-labs/terminus/releases/latest",
       {
         headers: {
           Accept: "application/vnd.github+json",
@@ -252,11 +252,11 @@ const PERMISOS = [
               </div>
               <div class="hero__via">
                 <div class="comando">
-                  <code>npx @soydanil/terminus</code>
+                  <code>npx @danil-labs/terminus</code>
                   <button
                     class="comando__copiar"
                     type="button"
-                    data-copiar="npx @soydanil/terminus"
+                    data-copiar="npx @danil-labs/terminus"
                   >
                     Copiar
                   </button>
@@ -761,7 +761,7 @@ const PERMISOS = [
         </div>
         <p class="nota-fina">
           La conexión es una <strong>GitHub App</strong> de la organización
-          <span class="mono">soydanil</span>, no una app registrada en la cuenta
+          <span class="mono">danil-labs</span>, no una app registrada en la cuenta
           personal de alguien. Antes esta misma pantalla pedía
           <span class="mono">repo</span> entero —control total sobre todo tu
           código privado— porque por el camino anterior no había forma de pedir
