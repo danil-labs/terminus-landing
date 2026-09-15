@@ -169,6 +169,43 @@ h1 {
   margin: 0 0.45rem;
 }
 
+.npx {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--texto-tenue);
+}
+.comando {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+}
+.comando code {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+  color: var(--texto);
+}
+.comando__copiar {
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--texto-tenue);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.comando__copiar:hover {
+  background: var(--superficie-alta);
+  color: var(--texto);
+}
+
 .agentes {
   margin-top: 3.25rem;
 }

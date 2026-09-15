@@ -635,4 +635,17 @@ const PREGUNTAS = [
     },
     true,
   );
+
+  /**
+   * **El campo de escribir crece hacia abajo, nunca hacia el lado.** Su
+   * `overflow-x: auto` es de `harness-app`, no de aquí, y a veces basta que la
+   * métrica de una fuente quede a un pixel del borde para que el navegador
+   * reserve la barra horizontal aunque no haya nada que desplazar — se ve
+   * escalado en la landing, y ahí un pixel de sobra se nota más. No hay nada
+   * que desplazar de lado en una caja de una idea por línea, así que se cierra
+   * del todo: la envolvente ya hace `overflow-y: auto` para el alto.
+   */
+  const estilo = document.createElement("style");
+  estilo.textContent = "textarea { overflow-x: hidden !important; }";
+  (document.head ?? document.documentElement).appendChild(estilo);
 })();

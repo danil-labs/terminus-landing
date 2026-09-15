@@ -138,6 +138,17 @@ const GLIFO_MAC =
           }
           Windows 10 u 11 y macOS
         </p>
+        <!-- El camino de quien ya tiene Node: un renglón, no un botón —compite
+             menos con la descarga, que es el camino de un clic. -->
+        <p class="npx">
+          ¿Ya tienes Node?
+          <span class="comando">
+            <code>npx @danil-labs/terminus</code>
+            <button class="comando__copiar" type="button" data-copiar="npx @danil-labs/terminus">
+              Copiar
+            </button>
+          </span>
+        </p>
 
         <div class="agentes">
           <p class="agentes__rotulo">Funciona con</p>
@@ -220,5 +231,25 @@ const GLIFO_MAC =
         <p class="yucatan">Desde Yucatán con Amor <span aria-hidden="true">♥</span></p>
       </div>
     </footer>
+
+    <script is:inline>
+      /* El comando es copiable: un clic lo pone en el portapapeles y el botón
+         lo confirma un momento. Si el navegador no da acceso al portapapeles,
+         el comando sigue ahí para seleccionarlo a mano. */
+      (() => {
+        const btn = document.querySelector(".comando__copiar");
+        if (!btn) return;
+        btn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(btn.dataset.copiar);
+            const antes = btn.textContent;
+            btn.textContent = "Copiado";
+            setTimeout(() => {
+              btn.textContent = antes;
+            }, 1500);
+          } catch {}
+        });
+      })();
+    </script>
   </body>
 </html>
