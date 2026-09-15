@@ -21,7 +21,7 @@ on:
   # a mano.
   #
   # **Cada diez minutos, y el reloj es todo lo que hay.** Lo ideal sería que el
-  # flujo de publicación de `soydanil/terminus` avisara al terminar una release
+  # flujo de publicación de `danil-labs/terminus` avisara al terminar una release
   # —la página se rehace en el minuto— pero eso pide un token cruzado entre dos
   # repos y se decidió no crearlo. Sin él, esto es lo que queda, y diez minutos
   # de ventana valen bastante más que sesenta.
