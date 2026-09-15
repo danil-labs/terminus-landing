@@ -13,15 +13,19 @@ import "../styles/global.css";
  * foto. Una captura que promete una interfaz que no existe se paga en la
  * primera instalación.
  *
- * **La promesa es lo que el producto hace, no lo que no hace.** Esta página
- * estuvo construida entera sobre «el agente no puede escribir tu repo», y esa
- * frase describía un mecanismo interno como si fuera el producto. Hoy Terminus
- * pide permiso de escritura en GitHub y publica ramas y pull requests: lo que
- * lo hace seguro no es que no escriba, es **quién** escribe y con qué delante.
- * El agente trabaja en una carpeta aparte; la publicación la hace la app, con
- * el cambio completo delante de quien lo aprueba. Eso es lo que se cuenta —
- * una landing que promete «nunca escribe» sobre una app que abre pull requests
- * se desmiente sola en la primera pantalla de permiso de GitHub.
+ * **Quién publica: el agente con tu Git, no la app.** La app no tiene ningún
+ * comando que empuje una rama ni que abra un pull request
+ * (`ARCHITECTURE.md` §§ 1 y 7 de `harness-app`: «No hay comandos de la app que
+ * generen nuevos pushes o PR»), y el árbol de una tarea nace con `HEAD`
+ * separado y sin rama (`SYSTEM.md` § Worktrees). Lo que hace seguro esto no es
+ * que nadie escriba: es que el comando que escribe fuera se enseña entero y se
+ * aprueba antes de correr (`agents::ExternalTools::VisibleApproval`). Prometer
+ * aquí que «lo publica la app» se desmiente en la primera tarea.
+ *
+ * **Y no todo proyecto es un repositorio.** Una carpeta de documentos basta:
+ * la tarea nace en su copia y lo escrito se lleva a la carpeta con «Guardar».
+ * Contar solo el camino de Git deja fuera a quien no tiene código, que es
+ * justo a quien va esta página.
  *
  * **Los permisos van con su nombre y con su número.** Contenido, pull requests
  * e issues, más el de metadatos que GitHub añade a todas. Cuatro, no tres:
@@ -116,16 +120,24 @@ async function versionPublicada(): Promise<string | null> {
 }
 const VERSION = await versionPublicada();
 /**
- * Los cinco agentes que la app sabe lanzar. Van en un dato y no en prosa
- * porque el número importa: «funciona con agentes de terminal» no dice nada;
- * cinco con nombre sí.
+ * Lo que Configuración → Proveedores de IA ofrece, en el mismo orden. Copia de
+ * `runtime/surfaces.rs` de `harness-app`: seis filas de `agents::AGENTS`, y la
+ * de OpenCode da dos superficies —su cuenta y «Modelos Free»—, que son siete
+ * renglones. El día que cambie la tabla, esta lista queda vieja.
+ *
+ * `cuenta: false` es sin suscripción de nadie, y eso separa las dos de abajo:
+ * «Locales» corre en tu máquina y no usa cuenta; «Modelos Free» no pide
+ * credencial pero manda el material a servidores de OpenCode, así que la app
+ * exige autorizarlo antes del primer turno (`runtime/chat/launch.rs`).
  */
 const AGENTES = [
-  { nombre: "Claude Code", casa: "Anthropic" },
-  { nombre: "Codex", casa: "OpenAI" },
-  { nombre: "Grok", casa: "xAI" },
-  { nombre: "Antigravity", casa: "Google" },
-  { nombre: "OpenCode", casa: "Open source" },
+  { nombre: "Claude Code", casa: "Anthropic", cuenta: true },
+  { nombre: "Codex", casa: "OpenAI", cuenta: true },
+  { nombre: "Grok", casa: "xAI", cuenta: true },
+  { nombre: "Antigravity", casa: "Google", cuenta: true },
+  { nombre: "OpenCode", casa: "Open source", cuenta: true },
+  { nombre: "Modelos Free", casa: "Sin cuenta", cuenta: false },
+  { nombre: "Locales", casa: "En tu máquina", cuenta: false },
 ];
 /**
  * Los permisos que pide la GitHub App, tal como los devuelve la API. Están
@@ -148,7 +160,7 @@ const PERMISOS = [
     <title>Terminus — agentes de terminal, con barandales</title>
     <meta
       name="description"
-      content="Aplicación de escritorio que corre Claude Code, Codex, Grok, Antigravity y OpenCode contra los repositorios de tu organización. Con tu suscripción, en tu máquina. El trabajo sale como artefacto o como pull request que tú apruebas."
+      content="Aplicación de escritorio que corre Claude Code, Codex, Grok, Antigravity y OpenCode contra las carpetas y los repositorios de tu organización. Con tu suscripción, en tu máquina. El trabajo sale como archivo, se guarda en tu carpeta o va al repositorio con tu visto bueno."
     />
     <meta property="og:title" content="Terminus" />
     <meta
@@ -227,10 +239,12 @@ const PERMISOS = [
           <p class="pastilla">Aplicación de escritorio · Windows y macOS</p>
           <h1>El agente hace el trabajo. Tú apruebas lo que sale.</h1>
           <p class="hero__bajada">
-            Cinco agentes de terminal corriendo dentro de una app, contra los
-            repositorios de tu organización, con tu propia suscripción y sin
-            que tu código salga de tu máquina. Lo que producen llega como un
-            archivo o como un pull request — y no sale hasta que tú lo miras.
+            Agentes de terminal corriendo dentro de una app, sobre una carpeta
+            de documentos o un repositorio, con tu propia suscripción.
+            Terminus no es intermediario: el material va de tu máquina a tu
+            proveedor y no pasa por nosotros. Lo que producen queda como
+            archivo, se guarda en tu carpeta o va al repositorio — y lo miras
+            antes.
           </p>
           <!-- La instalación vive en el hero, no en una sección lejana: el
                botón y el comando lado a lado, mismo peso. El botón es el camino
@@ -325,7 +339,11 @@ const PERMISOS = [
 
             <!-- Los agentes con los que corre, pegados a la instalación — la
                  fila «Works with» de la referencia. Monocromo, los mismos glifos
-                 que la sección de compatibilidad de más abajo. -->
+                 que la sección de compatibilidad de más abajo.
+
+                 Son las cinco marcas de CLI, y aquí no va número: la cuenta de
+                 lo elegible es siete y vive en `AGENTES`. Escribir «cinco»
+                 junto a esta fila contradice esa sección. -->
             <div class="hero__compat">
               <span class="hero__compat-rotulo">Funciona con</span>
               <div class="hero__agentes">
@@ -650,16 +668,20 @@ const PERMISOS = [
       </section>
 
       <!-- ================================================================
-           El recorrido. Cuatro pasos con su dato de máquina debajo — la
-           cadena entera de una tarea, de conectar el repo a aprobar el PR.
+           El recorrido. Cinco pasos con su dato de máquina debajo — la cadena
+           entera de una tarea, de abrir la app a que el cambio salga.
+
+           El primer paso es la preparación y el segundo admite carpeta o
+           repositorio: ese orden es el de la app real. Empezar en «conecta un
+           repositorio» deja fuera a quien no tiene código.
            =============================================================== -->
       <section class="envoltura seccion" id="recorrido">
         <div class="encabezado-seccion">
           <p class="rotulo">El recorrido</p>
           <h2>De una frase tuya a un cambio revisable.</h2>
           <p class="suave">
-            Cuatro pasos. En ninguno el agente decide solo qué sale de la
-            máquina.
+            Cinco pasos. La tarea trabaja en una copia, y el cambio se ve
+            entero antes de llegar a tu carpeta o a tu repositorio.
           </p>
         </div>
 
@@ -667,20 +689,42 @@ const PERMISOS = [
           <li class="etapa">
             <span class="etapa__num">01</span>
             <div class="etapa__cuerpo">
-              <h3>Eliges a qué repositorios entra</h3>
+              <h3>La app se prepara sola</h3>
               <p>
-                No «todo tu código privado»: los que marcas, uno por uno, en la
-                pantalla de GitHub. La app te lleva ahí y espera a que elijas.
+                Al primer arranque revisa qué tienes y baja lo que falte —Git,
+                Node, npm, pnpm, Bun y el navegador de los agentes— dentro de
+                su propia carpeta. No instala nada en tu sistema y no te pide
+                que lo hagas tú.
               </p>
               <p class="etapa__dato mono">
-                <span class="punto-estado" aria-hidden="true"></span>
-                acme/docs-producto
-                <span class="etapa__fin">conectado</span>
+                git · node · npm · pnpm · bun · agent-browser
+                <span class="etapa__fin">en la carpeta de la app</span>
               </p>
             </div>
           </li>
           <li class="etapa">
             <span class="etapa__num">02</span>
+            <div class="etapa__cuerpo">
+              <h3>Eliges con qué trabaja</h3>
+              <p>
+                Una carpeta de documentos basta — no hace falta git. O un
+                repositorio: pegas su dirección, o lo eliges de tu cuenta de
+                GitHub o Bitbucket, uno por uno y no «todo tu código privado».
+              </p>
+              <p class="etapa__dato mono">
+                <span class="punto-estado" aria-hidden="true"></span>
+                Contratos 2026
+                <span class="etapa__fin">carpeta</span>
+              </p>
+              <p class="etapa__dato mono">
+                <span class="punto-estado" aria-hidden="true"></span>
+                acme/docs-producto
+                <span class="etapa__fin">repositorio</span>
+              </p>
+            </div>
+          </li>
+          <li class="etapa">
+            <span class="etapa__num">03</span>
             <div class="etapa__cuerpo">
               <h3>Escribes la tarea en tu idioma</h3>
               <p>
@@ -694,33 +738,41 @@ const PERMISOS = [
             </div>
           </li>
           <li class="etapa">
-            <span class="etapa__num">03</span>
+            <span class="etapa__num">04</span>
             <div class="etapa__cuerpo">
-              <h3>El agente trabaja en su propia carpeta</h3>
+              <h3>La tarea trabaja en su propia copia</h3>
               <p>
-                El repositorio entra como material de lectura. El agente no está
-                parado dentro de él: corre en una carpeta de trabajo aparte, y
-                ahí es donde escribe.
+                El agente no está parado dentro de tu carpeta ni de tu
+                checkout. Cada tarea nace en una copia con nombre de astro y el
+                día en que se abrió. En un repositorio esa copia arranca
+                despegada y sin rama: la rama la crea el agente cuando su
+                trabajo merece nombre.
+              </p>
+              <p class="etapa__dato mono">
+                worktrees/algedi-260910/
+                <span class="etapa__fin">aquí escribe</span>
               </p>
               <p class="etapa__dato mono">
                 acme/docs-producto
-                <span class="etapa__fin">material · solo lectura</span>
-              </p>
-              <p class="etapa__dato mono">
-                sessions/a3f9/work/
-                <span class="etapa__fin">aquí escribe</span>
+                <span class="etapa__fin">tu carpeta, sin tocar</span>
               </p>
             </div>
           </li>
           <li class="etapa">
-            <span class="etapa__num">04</span>
+            <span class="etapa__num">05</span>
             <div class="etapa__cuerpo">
-              <h3>Sale como archivo, o como pull request que apruebas</h3>
+              <h3>Sale como archivo, a tu carpeta, o al repositorio</h3>
               <p>
-                Puedes quedarte el resultado como archivo y no tocar el repo. O
-                publicarlo: la app abre la rama y el pull request con el cambio
-                completo delante de ti. <strong>Lo publica la app, no el
-                agente</strong>, y no sale hasta que lo apruebas.
+                Puedes quedarte el resultado como archivo y no tocar nada.
+                <strong>Guardar</strong> escribe los archivos de la tarea en tu
+                carpeta, y antes te enseña qué cambió y cuándo. Y si es un
+                repositorio, el agente empuja su rama con tu propio Git —tus
+                credenciales, tu configuración— y el pull request se abre desde
+                tu proveedor.
+              </p>
+              <p class="etapa__dato mono">
+                cambio-de-plan.md
+                <span class="etapa__fin">nuevo en la tarea</span>
               </p>
               <p class="etapa__dato mono">
                 <span class="etapa__marca">PR</span>
@@ -742,10 +794,10 @@ const PERMISOS = [
           <p class="rotulo">Permisos</p>
           <h2>Lo que cambia es dónde, no qué.</h2>
           <p class="suave">
-            Terminus pide permiso de escritura, y lo dice aquí igual que lo dice
-            la pantalla de GitHub. Lo que acota no es la capacidad — es el
-            alcance: <strong>solo los repositorios que marcaste</strong>, y solo
-            estos cuatro permisos.
+            La conexión de GitHub pide permiso de escritura, y lo dice aquí
+            igual que lo dice la pantalla de GitHub. Lo que acota no es la
+            capacidad — es el alcance: <strong>solo los repositorios que
+            marcaste</strong>, y solo estos cuatro permisos.
           </p>
         </div>
 
@@ -767,26 +819,44 @@ const PERMISOS = [
         </div>
         <p class="nota-fina">
           La conexión es una <strong>GitHub App</strong> de la organización
-          <span class="mono">danil-labs</span>, no una app registrada en la cuenta
-          personal de alguien. Antes esta misma pantalla pedía
-          <span class="mono">repo</span> entero —control total sobre todo tu
-          código privado— porque por el camino anterior no había forma de pedir
-          menos.
+          <span class="mono">danil-labs</span>, no una app registrada en la
+          cuenta personal de alguien: es lo que permite marcar repositorio por
+          repositorio en vez de entregar todo el código privado de una vez.
+        </p>
+        <!-- Bitbucket es el otro camino de Control de Fuentes, y su forma no
+             es la de GitHub: token del espacio de trabajo, sin device flow.
+             Decir solo GitHub aquí hace creer que es el único. -->
+        <p class="nota-fina">
+          <strong>Bitbucket</strong> entra por el otro lado de esa misma
+          pantalla, con un token del espacio de trabajo. Terminus lo trata como
+          de solo lectura: ningún repositorio suyo se ofrece para publicar.
+        </p>
+        <!-- El límite honesto. La app no empuja ni abre PRs; lo hace el CLI
+             del agente con el Git de la persona, y de eso la app no intercepta
+             todo. Prometer que nada sale sin pasar por la app sería falso. -->
+        <p class="nota-fina">
+          <strong>La app no empuja ramas ni abre pull requests.</strong> Eso lo
+          hace el agente con tu propio Git, cuando se lo pides. Las
+          herramientas autenticadas que escriben fuera de la máquina —
+          <span class="mono">gh</span>— solo se le entregan hoy a Claude Code,
+          y con el comando entero delante de ti antes de correr.
         </p>
       </section>
 
       <!-- ================================================================
-           Los cinco agentes. El número es el argumento: cada uno con su casa
-           y con la nota de que la suscripción es tuya.
+           Los agentes. El número es el argumento, y es el de la pantalla de
+           Configuración: siete renglones, cinco con cuenta y dos sin ella.
+           Cambiar el número aquí sin cambiar `AGENTES` deja las dos cuentas
+           contradiciéndose en la misma sección.
            =============================================================== -->
       <section class="envoltura seccion">
         <div class="encabezado-seccion">
           <p class="rotulo">Los agentes</p>
-          <h2>Cinco, con tu suscripción.</h2>
+          <h2>Siete. Cinco con tu suscripción, dos sin cuenta.</h2>
           <p class="suave">
-            Corren con tu sesión y tus propios límites de uso. Terminus no
-            revende tokens ni guarda tus credenciales de agente: no las
-            necesita.
+            Los cinco de arriba corren con tu sesión y tus propios límites de
+            uso: Terminus no revende tokens ni guarda tus credenciales de
+            agente, no las necesita. Los dos de abajo no piden cuenta ninguna.
           </p>
         </div>
 
@@ -801,6 +871,13 @@ const PERMISOS = [
             ))
           }
         </div>
+        <p class="nota-fina">
+          <strong>Locales</strong> son los modelos que corren en tu propia
+          máquina: no hay cuenta y no sale nada de ella.
+          <strong>Modelos Free</strong> no cuestan, pero sí mandan el material
+          a servidores de OpenCode — por eso la app no deja usarlos hasta que
+          lo autorizas, con eso dicho.
+        </p>
         <p class="nota-fina">
           Git y los CLI de los agentes los trae la app en su propia carpeta al
           prepararse. No tocan tu sistema y no hay nada más que instalar.
@@ -826,9 +903,10 @@ const PERMISOS = [
           <div class="momento__texto">
             <h3>Conectas una herramienta con un botón.</h3>
             <p>
-              Figma, Jira o Confluence entran por OAuth. Cada servidor trabaja
-              con los permisos de tu cuenta. Terminus no guarda credenciales de
-              nadie.
+              Figma y Atlassian —Jira y Confluence dentro— entran por OAuth con
+              un botón. Cualquier otro servidor MCP entra pegando el bloque que
+              publica su documentación. Cada uno trabaja con los permisos de tu
+              cuenta; Terminus no guarda credenciales de nadie.
             </p>
             <p class="dato-linea">
               La conexión es del sistema, no de la conversación.
@@ -840,7 +918,9 @@ const PERMISOS = [
               <span class="marca__placa" aria-hidden="true">
                 <img src={ICONO} alt="" width="17" height="17" />
               </span>
-              <span class="ventana__titulo">Herramientas</span>
+              <!-- El rótulo de esa pantalla en la app es «Skills»: skills y
+                   servidores MCP viven juntos ahí (`features/settings/`). -->
+              <span class="ventana__titulo">Skills y herramientas</span>
               <span class="ventana__controles" aria-hidden="true">
                 <span>—</span><span>▢</span><span>✕</span>
               </span>
@@ -863,17 +943,22 @@ const PERMISOS = [
                   <path d="M4 11l8 8 8-8" />
                   <path d="M8 5l4 4 4-4" />
                 </svg>
-                <span class="vista__nombre">Jira</span>
-                <span class="vista__sub">y Confluence</span>
+                <span class="vista__nombre">Atlassian</span>
+                <span class="vista__sub">Jira y Confluence</span>
                 <span class="sello sello--salida vista__fin">conectado</span>
               </p>
-              <p class="panel__rotulo" style="margin-top: 0.4rem;">Disponibles</p>
+              <!-- «Otros servidores» y no GitHub: por MCP se conectan con un
+                   botón Figma y Atlassian, y nada más (`runtime/mcp.rs`,
+                   `CONOCIDOS`). GitHub y Bitbucket no son herramientas MCP —
+                   viven en Control de Fuentes, que es otra pantalla. -->
+              <p class="panel__rotulo" style="margin-top: 0.4rem;">Otros servidores</p>
               <p class="vista__fila">
-                <svg class="vista__marca" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.4-2.2-.3-4.5-1.1-4.5-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.6s.8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .4 1 .2 2 .1 2.6a3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.5 5 .3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A10 10 0 0 0 12 2z" />
+                <svg class="vista__marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M7 10l3 2-3 2M13 15h4" />
                 </svg>
-                <span class="vista__nombre">GitHub</span>
-                <span class="boton-fantasma vista__fin" style="margin-top: 0; padding: 0.25rem 0.6rem;">Conectar</span>
+                <span class="vista__nombre">Pega el bloque de su documentación</span>
+                <span class="boton-fantasma vista__fin" style="margin-top: 0; padding: 0.25rem 0.6rem;">Conectar otro</span>
               </p>
             </div>
           </figure>
@@ -933,9 +1018,9 @@ const PERMISOS = [
           <p class="rotulo">Herramientas</p>
           <h2>Y tus herramientas, con tus permisos.</h2>
           <p class="suave">
-            Entran por MCP con tu propia cuenta, y llegan a los cinco agentes —
-            no a dos. El que no puede iniciar sesión en una lo dice antes, no
-            después de gastarte el turno.
+            Entran por MCP con tu propia cuenta, y llegan a todos los agentes
+            que tengas instalados — no a dos. La app dice a cuáles llega y a
+            cuáles todavía no, antes de gastarte el turno.
           </p>
         </div>
         <div class="compat">
@@ -965,22 +1050,18 @@ const PERMISOS = [
                 </svg>
                 <span class="logo__nombre">Confluence</span>
               </span>
-              <span class="logo">
-                <svg class="logo__glifo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.4-2.2-.3-4.5-1.1-4.5-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.6s.8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .4 1 .2 2 .1 2.6a3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.5 5 .3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A10 10 0 0 0 12 2z" />
-                </svg>
-                <span class="logo__nombre">GitHub</span>
-              </span>
-              <span class="logo">
-                <svg class="logo__glifo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 5h18l-2.4 14H5.4z" />
-                  <path d="M10 10.5h4l-.7 4h-2.6z" />
-                </svg>
-                <span class="logo__nombre">Bitbucket</span>
-              </span>
             </div>
           </div>
         </div>
+        <!-- Estos tres son los que se conectan con un botón: el servidor de
+             Figma y el de Atlassian, que trae Jira y Confluence dentro. GitHub
+             y Bitbucket estaban aquí y no van: son Control de Fuentes. -->
+        <p class="nota-fina">
+          GitHub y Bitbucket no entran por aquí: son de dónde sale tu material,
+          y se conectan en Control de Fuentes. Atlassian anuncia Bitbucket
+          dentro de su servidor, pero esa parte pide un token de API y no viene
+          con esta conexión.
+        </p>
       </section>
 
       <!-- ================================================================
@@ -1012,10 +1093,14 @@ const PERMISOS = [
             <span class="lengua__nota mono">paquete instalable</span>
           </span>
         </div>
+        <!-- «Borrador» sale del manifiesto del paquete, que se firma «Terminus
+             — borrador sin revisión de hablante». Quitarlo promete una lengua
+             revisada que nadie revisó. -->
         <p class="nota-fina">
           El maayatʼaan entra como paquete: se elige en el selector y elegirlo
-          lo instala. Y el agente contesta en la lengua del espacio de trabajo,
-          no solo la interfaz.
+          lo instala. Es un borrador, todavía sin revisión de hablante. Y la
+          lengua del espacio de trabajo puede además ser en la que conteste el
+          agente, no solo la de la interfaz.
         </p>
       </section>
 
@@ -1106,19 +1191,19 @@ const PERMISOS = [
           <h2>Instálalo y dale una tarea de verdad.</h2>
           <p class="hero__bajada" style="margin: 0 auto;">
             Se prepara sola: trae Git y los CLI de los agentes a su propia
-            carpeta. Tú pones tu suscripción
-            de Claude, Codex o el que uses — nosotros no la vemos ni la
-            guardamos. Tu código no sale de tu máquina.
+            carpeta, sin tocar tu sistema. Tú pones tu suscripción de Claude,
+            Codex o el que uses — nosotros no la vemos ni la guardamos, y tu
+            material no pasa por nuestros servidores.
           </p>
           <p class="cierre__recap">
             <span>
-              <span class="punto-estado" aria-hidden="true"></span>Los repos que tú marcas
+              <span class="punto-estado" aria-hidden="true"></span>Tu carpeta, o los repos que marcas
             </span>
             <span>
-              <span class="punto-estado" aria-hidden="true"></span>El agente, en su carpeta
+              <span class="punto-estado" aria-hidden="true"></span>La tarea, en su copia
             </span>
             <span>
-              <span class="punto-estado" aria-hidden="true"></span>El pull request, con tu visto bueno
+              <span class="punto-estado" aria-hidden="true"></span>Lo que sale, visto antes
             </span>
           </p>
           <a class="boton boton--accion" href={DESCARGA}>
