@@ -19,12 +19,21 @@ const ALTO = 800;
 
 <div class="demo" style={`--ancho: ${ANCHO}px; --alto: ${ALTO}px;`} data-demo>
   <div class="demo__marco">
-    <div class="demo__barra" aria-hidden="true">
-      <span class="demo__puntos"><i></i><i></i><i></i></span>
-      <span>Terminus</span>
+    <div class="demo__barra">
+      <span class="demo__puntos" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span aria-hidden="true">Terminus</span>
+      <!-- El único botón que la demo pone encima de la app real. La app no
+           deshace un turno guionado ni una tarea nueva por su cuenta —no hay
+           «volver al inicio» dentro de ella—, así que si alguien deja la
+           ventana en un estado raro, esto la regresa entera: recarga el
+           iframe, que reinicia `simulador.js` desde cero. -->
+      <button type="button" class="demo__reiniciar" data-demo-reiniciar>
+        Reiniciar demo
+      </button>
     </div>
     <div class="demo__lienzo">
       <iframe
+        data-demo-iframe
         src="/demo/"
         title="Terminus: la app real, con respuestas simuladas"
         width={ANCHO}
@@ -35,6 +44,8 @@ const ALTO = 800;
   <p class="demo__nota">
     Es la app de verdad, con respuestas simuladas. Abre una tarea, cambia el
     tema en Configuración o escríbele algo al agente.
+    <strong>No todo funciona aquí</strong> —conectar cuentas, instalar,
+    borrar—: eso solo pasa en la app.
   </p>
 </div>
 
@@ -51,6 +62,16 @@ const ALTO = 800;
     };
     new ResizeObserver(ajustar).observe(lienzo);
     ajustar();
+
+    // Reasignar `src` fuerza una recarga completa del iframe: vuelve a correr
+    // `simulador.js` desde cero y borra cualquier tarea o cambio que se haya
+    // creado en la sesión anterior. Es la vía simple porque no hay nada que
+    // pedirle a la app: para ella esto es abrir la página de nuevo.
+    const iframe = demo.querySelector("[data-demo-iframe]");
+    const boton = demo.querySelector("[data-demo-reiniciar]");
+    boton?.addEventListener("click", () => {
+      iframe.src = iframe.src;
+    });
   })();
 </script>
 
@@ -70,10 +91,24 @@ const ALTO = 800;
     align-items: center;
     gap: 0.75rem;
     height: 34px;
-    padding: 0 0.85rem;
+    padding: 0 0.6rem 0 0.85rem;
     border-bottom: 1px solid var(--borde);
     font-size: 0.78rem;
     color: var(--texto-tenue);
+  }
+  .demo__reiniciar {
+    margin-left: auto;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--borde-fuerte);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--texto-tenue);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .demo__reiniciar:hover {
+    background: var(--superficie-alta);
+    color: var(--texto);
   }
   .demo__puntos {
     display: flex;

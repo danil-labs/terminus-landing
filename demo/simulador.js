@@ -497,4 +497,142 @@ const PREGUNTAS = [
     },
   };
   localStorage.setItem("harness:lengua", "es");
+
+  /* ------------------------------------------------------- el guardia */
+
+  /**
+   * **No todo tiene que funcionar; lo que no funciona no debe romperse.**
+   *
+   * La demo no simula cada comando —conectar cuentas, instalar, borrar,
+   * renombrar—, así que dejar tocar esos controles termina en un formulario
+   * que nunca contesta o en un «Algo se rompió» de la propia app. En vez de ir
+   * tapando cada caso, se cierra la puerta por defecto: **un clic o una tecla
+   * solo hacen algo si están en la lista de abajo**, y lo que no reconoce se
+   * bloquea, no se adivina. Si `harness-app` agrega un botón nuevo, esta lista
+   * no lo sabe y lo bloquea sola — quedó afuera por diseño, no por descuido.
+   *
+   * Lo permitido es exactamente lo que tiene guion en este archivo: abrir
+   * tareas, mostrar/ocultar las columnas, navegar el árbol y sus pestañas,
+   * escribir y enviar un mensaje, y Configuración en modo lectura (sus
+   * secciones y la Apariencia). Todo lo demás —cuentas, proveedores,
+   * instalar, borrar, "Nueva tarea", el selector de modelo— no está en la
+   * lista, y por eso no hace nada.
+   */
+  const AVISO = "En la demo esto no está disponible. Descarga Terminus para probarlo.";
+  let toast = null;
+  function avisar(texto) {
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.setAttribute("role", "status");
+      Object.assign(toast.style, {
+        position: "fixed", left: "50%", bottom: "18px", zIndex: 2147483647,
+        transform: "translateX(-50%) translateY(10px)", opacity: "0",
+        background: "#0a0d23", color: "#f7f8fc", maxWidth: "300px", textAlign: "center",
+        font: "13px/1.4 -apple-system, system-ui, sans-serif", padding: "0.6rem 1rem",
+        borderRadius: "8px", boxShadow: "0 8px 24px rgb(0 0 0 / 0.35)",
+        pointerEvents: "none", transition: "opacity 150ms, transform 150ms",
+      });
+      (document.body ?? document.documentElement).appendChild(toast);
+    }
+    toast.textContent = texto;
+    requestAnimationFrame(() => Object.assign(toast.style, { opacity: "1", transform: "translateX(-50%) translateY(0)" }));
+    clearTimeout(avisar._t);
+    avisar._t = setTimeout(() => Object.assign(toast.style, { opacity: "0", transform: "translateX(-50%) translateY(10px)" }), 2200);
+  }
+
+  const CONTROL = 'button, a[href], [role="tab"], [role="radio"], [role="checkbox"], summary, select';
+
+  /**
+   * **El árbol de trabajo no tiene una marca propia que decir «soy yo».** Es
+   * código de `harness-app`, no de esta demo, así que se ubica por lo único
+   * estable que sí tiene: el botón que lo cierra y el rótulo «Carpeta» que lo
+   * encabeza. Sin ellos —columna cerrada— no hay nada que ubicar.
+   */
+  function regionDelArbol() {
+    const cerrar = document.querySelector('button[aria-label="Cerrar el árbol de trabajo"]');
+    if (!cerrar) return null;
+    for (let n = cerrar.parentElement, i = 0; n && i < 14; n = n.parentElement, i++) {
+      const tieneRotulo = Array.from(n.querySelectorAll("*")).some(
+        (x) => x.childElementCount === 0 && x.textContent.trim() === "Carpeta",
+      );
+      if (tieneRotulo) return n;
+    }
+    return null;
+  }
+
+  function permitido(objetivo) {
+    const control = objetivo.closest?.(CONTROL);
+    if (!control) return true; // no es un control: no acciona nada de todos modos
+
+    if (control.closest("[data-sesion]")) return true; // abrir una tarea
+
+    if (control.matches('a[href^="http"], a[href^="mailto:"]')) return true; // el propio chat ya intercepta su navegación
+
+    const etiqueta = control.getAttribute("aria-label") ?? "";
+    if (
+      [
+        "Ocultar el historial", "Mostrar el historial",
+        "Ver el árbol de trabajo", "Cerrar el árbol de trabajo",
+        "Configuración", "Cerrar configuración (Esc)",
+        "Preguntar", "Detener turno",
+      ].includes(etiqueta)
+    ) return true;
+    if (etiqueta.startsWith("Cerrar «")) return true; // cerrar una pestaña de tarea, no borrarla
+
+    if (control.getAttribute("role") === "tab") return true; // cambiar de vista, nunca de dato
+
+    if (control.getAttribute("role") === "radio") {
+      return control.closest('[role="radiogroup"]')?.getAttribute("aria-label") === "Apariencia";
+    }
+
+    // Abrir o cerrar un desplegable es mirar, no tocar: lo que haga falta
+    // dentro sigue su propia regla al clic siguiente.
+    if (control.hasAttribute("aria-expanded")) return true;
+
+    const region = regionDelArbol();
+    if (region?.contains(control)) {
+      const texto = (control.getAttribute("aria-label") ?? control.getAttribute("title") ?? control.textContent ?? "").trim();
+      return !["Exportar chat", "Abrir carpeta", "Copiar ruta", "Ruta copiada"].includes(texto);
+    }
+
+    return false;
+  }
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (permitido(e.target)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      avisar(AVISO);
+    },
+    true,
+  );
+
+  // Los atajos de teclado son la otra puerta de entrada a lo mismo: "Nueva
+  // tarea" con Cmd+T, un Delete sobre una fila seleccionada. Se bloquea toda
+  // combinación con Cmd/Ctrl salvo copiar, pegar y deshacer DENTRO de un
+  // campo de texto —si no, no se podría ni escribir la tarea—, y todo Delete
+  // o Backspace que no esté escribiendo en un campo. Escape siempre pasa:
+  // solo cierra columnas y diálogos, nunca borra nada.
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key === "Escape") return;
+      const editable = /^(INPUT|TEXTAREA)$/.test(e.target?.tagName ?? "") || e.target?.isContentEditable;
+      if (e.metaKey || e.ctrlKey) {
+        if (editable && ["c", "v", "x", "a", "z"].includes(e.key.toLowerCase())) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        avisar(AVISO);
+        return;
+      }
+      if (!editable && (e.key === "Delete" || e.key === "Backspace")) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        avisar(AVISO);
+      }
+    },
+    true,
+  );
 })();
