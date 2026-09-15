@@ -5,8 +5,8 @@
    colores, se traen. Superficie sólida, borde hairline, sombra chica. Cero
    glassmorphism, cero gradientes decorativos, radios 4/6/8.
 
-   Los colores de la maqueta de la app no viven aquí: son los de `harness-app`
-   y van dentro de `components/Maqueta.astro`.
+   La demo no se pinta con esta hoja: es la app de verdad dentro de un
+   iframe (`components/Demo.astro`), con sus propios estilos.
    ========================================================================= */
 
 @font-face {
@@ -53,15 +53,18 @@
     transform: translateY(0);
   }
 }
+/* Solo con `.js` en <html>: sin JavaScript no hay quien ponga `is-visible`, y
+   la demo, los tres pasos y los botones de descarga del cierre se quedaban en
+   opacidad cero para siempre. */
 @media (prefers-reduced-motion: no-preference) {
-  .reveal {
+  .js .reveal {
     opacity: 0;
     transform: translateY(28px);
     transition:
       opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
       transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .reveal.is-visible {
+  .js .reveal.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
@@ -236,8 +239,11 @@ h1 {
   margin: 0 0.45rem;
 }
 
+/* En teléfono la pregunta baja a su renglón y el comando no se parte: un
+   `npx @danil-` / `labs/terminus` en dos líneas ya no se puede copiar a ojo. */
 .npx {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
@@ -255,6 +261,7 @@ h1 {
   background: var(--superficie);
 }
 .comando code {
+  white-space: nowrap;
   font-family: "Geist Mono", ui-monospace, monospace;
   font-size: 0.82rem;
   color: var(--texto);

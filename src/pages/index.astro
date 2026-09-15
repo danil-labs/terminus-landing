@@ -93,6 +93,9 @@ const GLIFO_MAC =
     <link rel="icon" href={ICONO} type="image/png" />
     <link rel="apple-touch-icon" href={ICONO} />
     <link rel="preload" href="/fuentes/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Antes de pintar: lo que entra con `.reveal` solo se esconde si hay
+         JavaScript que luego lo vaya a enseñar. -->
+    <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
 
   <body>
