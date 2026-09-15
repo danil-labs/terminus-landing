@@ -73,6 +73,9 @@ a {
   align-items: center;
   height: 64px;
 }
+/* Sin placa ni fondo detrás del ícono: el PNG ya trae su propio cuadro
+   blanco redondeado —el mismo que pinta cualquier lanzador del sistema—, y
+   ponerle otro encima duplicaba el marco. */
 .marca {
   display: flex;
   align-items: center;
@@ -80,15 +83,6 @@ a {
   font-weight: 600;
   text-decoration: none;
   letter-spacing: -0.01em;
-}
-.marca__placa {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--superficie-alta);
-  border: 1px solid var(--borde-fuerte);
 }
 
 /* --- Botones ---------------------------------------------------------- */
