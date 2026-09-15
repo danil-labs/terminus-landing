@@ -19,11 +19,15 @@ pnpm preview   # sirve el build para revisarlo
 
 ```
 src/pages/index.astro         La página entera: hero, «Cómo funciona», cierre.
-src/components/Maqueta.astro  La ventana de la app, tocable: barras, tareas,
-                              Configuración, apariencia y consumos. Sus
-                              rótulos y colores se copian de harness-app.
+src/components/Demo.astro     El marco de la demo: un iframe a /demo/, pintado
+                              a ancho de escritorio y escalado al que haya.
 src/components/MarcaAgente.astro  Las marcas de los agentes, copiadas de
                               harness-app/src/ui/icons.tsx.
+demo/simulador.js             El backend simulado de la demo: proyectos,
+                              tareas, cuentas y el turno guionado del agente.
+scripts/demo.mjs              Compila la demo desde una checkout de harness-app.
+public/demo/                  La demo compilada. Entra al repo: el CI no puede
+                              leer harness-app, que es privado.
 src/styles/global.css         Tokens de marca y estilos de la página. Los
                               colores salen del sistema de diseño; aquí no se
                               inventan.
@@ -45,6 +49,27 @@ wrangler.jsonc                Configuración de despliegue a Cloudflare.
   la primera instalación desmiente cuesta más que no hacerla.
 - Los datos no se inventan: la descarga apunta a las releases reales y la
   versión se resuelve al compilar.
+
+## La demo
+
+La ventana que se ve en la página **es la app de verdad**: el front de
+`harness-app` compilado tal cual, con el backend de Tauri simulado por
+`demo/simulador.js` (la misma técnica que `scripts/mount.mjs` de allá). Se
+tocan las barras, las tareas, Configuración, la apariencia, los consumos y el
+árbol del proyecto; al escribirle al agente corre un turno guionado que crea un
+componente, edita la página y compila. **El agente de la demo dice que su
+respuesta es simulada.**
+
+Para regenerarla con otra versión de la app:
+
+```bash
+node scripts/demo.mjs <carpeta de harness-app>   # exporta HEAD, no toca la checkout
+npm run build
+```
+
+`public/demo/VERSION` dice de qué commit de `harness-app` salió. Si la app
+agrega comandos, el script les da solo la respuesta vacía que admite su tipo; lo
+que tenga algo que enseñar se escribe en el simulador.
 
 ## Despliegue
 
