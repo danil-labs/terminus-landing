@@ -1,13 +1,12 @@
 /* ============================================================================
    Terminus — hoja de estilo de la página.
 
-   Los tokens salen del sistema de diseño de la marca, que es la fuente de verdad
-   visual. Aquí no se inventan colores: se traen. Si algo tiene que cambiar de
-   raíz, cambia en el sistema y baja hasta aquí.
+   Los tokens salen del sistema de diseño de la marca: aquí no se inventan
+   colores, se traen. Superficie sólida, borde hairline, sombra chica. Cero
+   glassmorphism, cero gradientes decorativos, radios 4/6/8.
 
-   Dirección: operacional-crisp, post-Bento. Superficie sólida, borde hairline,
-   sombra chica. Cero glassmorphism, cero `backdrop-filter`, cero gradientes
-   decorativos, radios 4/6/8.
+   La demo no se pinta con esta hoja: es la app de verdad dentro de un
+   iframe (`components/Demo.astro`), con sus propios estilos.
    ========================================================================= */
 
 @font-face {
@@ -24,80 +23,50 @@
 }
 
 :root {
-  /* --- Marca (invariante, sale de DESIGN.md) --------------------------- */
-  --navy: #0a0d23; /* --color-neutral-950 · fondo de landing */
-  --purple: #6539f5; /* --color-primary · presencia del agente */
-  --yellow: #f4eb7b; /* --color-secondary · acción primaria en dark */
-  --green: #5fcc79; /* --color-accent · conectado / estado sano */
-
-  /* --- El CTA es AMARILLO. La decisión, y por qué -----------------------
-     DESIGN.md define dos cosas que aquí se cruzan: que en dark mode la marca
-     invierte purple→yellow y el amarillo pasa a ser LA acción
-     (`--color-primary` dark = #f4eb7b, `--action-text` = #0a0d23); y que el
-     verde vale para "CTAs en landing". Esta página es oscura, así que gana la
-     regla más específica: sobre superficie oscura, la acción es amarilla.
-
-     Además el verde tiene trabajo propio en esta página — es el punto de
-     "conectado" de las herramientas MCP y del estado del agente en la captura
-     del producto. Si el botón también fuera verde, el pixel más importante de
-     la página dejaría de ser único y competiría con un indicador de estado.
-     Un color de acción por superficie: amarillo. El morado se queda para lo
-     que DESIGN.md le reserva — la presencia del agente dentro del producto. */
-  --accion: var(--yellow);
-  --accion-hover: #f8f2a0;
-  --accion-texto: var(--navy); /* --action-text: negro sobre amarillo */
-
-  /* --- Superficies ------------------------------------------------------
-     Sólidas y separadas por muy poco: la profundidad la hace el borde, no la
-     transparencia. Todas son navy desaturado, no gris — el fondo es marca. */
-  --fondo: #0a0d23;
+  --fondo: #0a0d23; /* --color-neutral-950 */
   --superficie: #10142c;
   --superficie-alta: #161b39;
-  --superficie-honda: #070915; /* más oscura que el fondo: huecos, chrome */
-
-  /* --- Texto ------------------------------------------------------------
-     Los dos niveles están medidos contra `--fondo` y contra `--superficie`.
-     Nada por debajo de 4.5:1 (los números viven en el commit). */
   --texto: #f7f8fc;
   --texto-suave: #a9aec9;
-  --texto-tenue: #7b81a3; /* solo etiquetas ≥ 18px o no esenciales */
-
-  /* --- Bordes hairline --------------------------------------------------- */
+  --texto-tenue: #7b81a3;
   --borde: rgb(255 255 255 / 0.09);
   --borde-fuerte: rgb(255 255 255 / 0.16);
-
-  /* --- Radios crisp ------------------------------------------------------ */
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 8px;
-  --r-full: 9999px;
-
-  /* --- Sombras (contenidas; en oscuro pesan más para leerse) ------------- */
-  --sombra-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --sombra-md: 0 2px 8px rgb(0 0 0 / 0.45);
-  --sombra-lg: 0 16px 48px rgb(0 0 0 / 0.55);
-
-  --ancho: 1120px;
-
+  /* En oscuro la acción es amarilla (DESIGN.md: la marca invierte
+     morado→amarillo). Un solo color de acción por superficie. */
+  --accion: #f4eb7b;
+  --accion-hover: #f8f2a0;
+  --accion-texto: var(--fondo);
   color-scheme: dark;
 }
 
-*,
-*::before,
-*::after {
+* {
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
-  * {
-    transition-duration: 1ms !important;
-    animation-duration: 1ms !important;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Solo con `.js` en <html>: sin JavaScript no hay quien ponga `is-visible`, y
+   la demo, los tres pasos y los botones de descarga del cierre se quedaban en
+   opacidad cero para siempre. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .js .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -109,422 +78,71 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
-img,
-svg {
-  display: block;
-  max-width: 100%;
+a {
+  color: inherit;
 }
-
-/* ============================================================================
-   El fondo
-
-   No es el lienzo donde se pone el diseño: es parte del diseño. Cuatro capas
-   fijas detrás de todo, que no capturan el ratón y no entran en el orden de
-   lectura.
-
-   **Y aquí se sale a propósito de una regla de `DESIGN.md`.** La prohibición de
-   gradientes y `blur` gobierna el PRODUCTO, donde una superficie tiene que
-   leerse como un dato operacional y la translucidez miente sobre qué está
-   encima de qué. Esto es una landing: no hay dato que leer, hay una cosa que
-   enseñar. Lo que sigue prohibido —y no aparece en ningún sitio— es el
-   glassmorphism: el rectángulo translúcido con `backdrop-filter` encima de
-   nada. Profundidad, no neblina. La paleta no se toca.
-   ========================================================================= */
-
-.fondo {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-}
-/* Sobresalen por los cuatro lados: al desplazarse con el scroll no puede
-   aparecer el canto de la capa. Cuánto se mueven lo limita el script. */
-/* Sobresalen por arriba y por abajo: al desplazarse con el scroll no puede
-   aparecer el canto de la capa. A los lados NO sobresalen — el paralaje es
-   vertical, así que ahí solo servía para sumarle 10 px de scroll horizontal a
-   la página en móvil. */
-.fondo__capa {
-  position: absolute;
-  inset: -35% 0;
-  will-change: transform;
-}
-
-/* 1 · Rejilla técnica. Da escala y sensación de plano de ingeniería. Se
-   desvanece hacia abajo con una máscara: una cuadrícula que llega al pie
-   parece papel milimetrado, no profundidad. */
-.fondo__rejilla {
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      rgb(255 255 255 / 0.045) 0 1px,
-      transparent 1px 88px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      rgb(255 255 255 / 0.045) 0 1px,
-      transparent 1px 88px
-    );
-  -webkit-mask-image: radial-gradient(
-    115% 70% at 50% 0%,
-    #000 0%,
-    rgb(0 0 0 / 0.55) 45%,
-    transparent 78%
-  );
-  mask-image: radial-gradient(
-    115% 70% at 50% 0%,
-    #000 0%,
-    rgb(0 0 0 / 0.55) 45%,
-    transparent 78%
-  );
-}
-
-/* 2 · La luz. Cae de arriba, donde está el titular, y el morado de marca hace
-   de halo detrás de la ventana del producto — que es lo único que tiene que
-   levantarse del plano. El amarillo entra a un 6 %: es la temperatura de la
-   marca, no un foco. */
-.fondo__luz {
-  background:
-    radial-gradient(
-      44rem 24rem at 50% -5rem,
-      rgb(244 235 123 / 0.06),
-      transparent 70%
-    ),
-    radial-gradient(
-      54rem 34rem at 50% 22rem,
-      rgb(101 57 245 / 0.19),
-      transparent 68%
-    ),
-    radial-gradient(
-      72rem 42rem at 50% 38rem,
-      rgb(101 57 245 / 0.08),
-      transparent 70%
-    );
-}
-
-/* 3 · Viñeta. Cierra los bordes y empuja la mirada al centro. */
-.fondo__vineta {
-  background: radial-gradient(
-    120% 95% at 50% 26%,
-    transparent 48%,
-    rgb(3 4 12 / 0.5) 82%,
-    rgb(3 4 12 / 0.78) 100%
-  );
-}
-
-/* 4 · Grano. Un campo de ruido finísimo generado en el propio archivo (SVG en
-   `data:`, sin una petición más) que le quita el plano perfecto al degradado:
-   sin él, en pantallas de 8 bits, el halo sale a bandas. */
-.fondo__grano {
-  inset: 0;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23r)'/%3E%3C/svg%3E");
-}
-
-/* Las dos reglas verticales del ancho de contenido. Estructuran la
-   composición como el margen de un plano: no separan nada, encuadran. */
-.reglas {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  display: flex;
-  justify-content: center;
-}
-.reglas__caja {
-  width: 100%;
-  max-width: var(--ancho);
-  height: 100%;
-  border-left: 1px solid rgb(255 255 255 / 0.05);
-  border-right: 1px solid rgb(255 255 255 / 0.05);
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 12%,
-    #000 70%,
-    transparent
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 12%,
-    #000 70%,
-    transparent
-  );
-}
-@media (max-width: 1180px) {
-  .reglas {
-    display: none;
-  }
-}
-
-/* ============================================================================
-   Tipografía
-   ========================================================================= */
-
-h1,
-h2,
-h3,
-h4 {
-  margin: 0;
-  line-height: 1.08;
-  letter-spacing: -0.025em;
-  font-weight: 600;
-  text-wrap: balance;
-}
-
-/* Jerarquía brutal a propósito: el titular es ~3.5× el cuerpo. Quien llega
-   tiene que entender de qué va esto antes de decidir si sigue leyendo. */
-h1 {
-  font-size: clamp(2.125rem, 6vw, 3.5rem);
-  font-weight: 700;
-  letter-spacing: -0.032em;
-}
-h2 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-h3 {
-  font-size: 1.0625rem;
-  line-height: 1.3;
-  letter-spacing: -0.015em;
-}
-
-p {
-  margin: 0;
-}
-strong {
-  font-weight: 600;
-  color: var(--texto);
-}
-
-/* Geist Mono significa "dato operacional real": rutas, comandos, nombres de
-   archivo, lo que el sistema dice literalmente. Nunca de adorno. */
 .mono {
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
-  font-feature-settings: "ss01";
-}
-
-.suave {
-  color: var(--texto-suave);
-}
-
-/* Rótulo de sección. Mono en versalitas, chico y espaciado: marca dónde
-   empieza cada bloque sin gastar un título. */
-.rotulo {
   font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--texto-suave);
-  margin: 0;
 }
-
-/* ============================================================================
-   Estructura
-   ========================================================================= */
-
 .envoltura {
-  width: 100%;
-  max-width: var(--ancho);
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  width: min(100% - 3rem, 1040px);
+  margin-inline: auto;
 }
 
-/* Los separadores hacen todo el trabajo de estructura. Se apagan en los
-   extremos en vez de morir contra el borde de la pantalla: una línea que llega
-   entera al canto parece el borde de una tabla. */
-.seccion {
-  position: relative;
-  padding-block: clamp(3.5rem, 7vw, 5.5rem);
-}
-.seccion::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 1.5rem;
-  right: 1.5rem;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgb(255 255 255 / 0.13) 15%,
-    rgb(255 255 255 / 0.13) 85%,
-    transparent
-  );
-}
-
-/* Dos columnas de lectura para los párrafos largos: el texto no se estira
-   hasta 1120 px (ilegible) ni deja media pantalla vacía. */
-.dos-columnas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1.5rem, 4vw, 3rem);
-  max-width: 62rem;
-}
-.dos-columnas p {
-  font-size: 1.0625rem;
-  line-height: 1.65;
-}
-@media (max-width: 820px) {
-  .dos-columnas {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.encabezado-seccion {
-  display: grid;
-  gap: 1rem;
-  max-width: 46rem;
-  margin-bottom: 3.5rem;
-}
-.encabezado-seccion p.suave {
-  font-size: 1.0625rem;
-  max-width: 44rem;
-}
-
-/* ============================================================================
-   Navegación
-   ========================================================================= */
-
-/* Arriba del todo la barra es invisible: un rectángulo sólido cruzando el halo
-   del hero se ve como una banda apagada. Se enciende sola al despegarse
-   (`.pegado`), que es cuando hace falta que separe. Sólida, nunca translúcida
-   con blur — el texto pasando por debajo tiene que desaparecer, no fantasmear. */
+/* --- Barra ------------------------------------------------------------ */
 .nav {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: transparent;
+  background: var(--fondo);
   border-bottom: 1px solid transparent;
   transition:
-    background-color 200ms ease-out,
-    border-color 200ms ease-out;
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
-.nav.pegado {
-  /* Un pelo más oscura que `--fondo`: cuando se enciende, lo que tiene detrás
-     ya está oscurecido por la viñeta, y el navy plano se vería como un parche
-     más claro pegado encima. */
-  background: #080a1b;
+.nav--elevada {
   border-bottom-color: var(--borde);
+  box-shadow: 0 16px 32px -24px rgb(0 0 0 / 0.65);
 }
 .nav__fila {
-  height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  height: 64px;
 }
-
-/* El bloque de marca: el icono REAL de la aplicación —el mismo que va a
-   aparecer en el menú de inicio— sobre una placa clara, porque el isotipo es
-   navy y sobre navy no existiría. Invertirlo a blanco lo haría ilegible como
-   icono de app: dejaría de ser el que se reconoce. */
+/* Sin placa ni fondo detrás del ícono: el PNG ya trae su propio cuadro
+   blanco redondeado —el mismo que pinta cualquier lanzador del sistema—, y
+   ponerle otro encima duplicaba el marco. */
 .marca {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--texto);
-  text-decoration: none;
   font-weight: 600;
-  font-size: 1rem;
-  letter-spacing: -0.015em;
-}
-.marca__placa {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-md);
-  background: #f7f8fc;
-  display: grid;
-  place-items: center;
-  flex: none;
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.5),
-    inset 0 0 0 1px rgb(255 255 255 / 0.5);
-}
-.marca__placa img {
-  width: 17px;
-  height: 17px;
-  object-fit: contain;
-}
-.marca__placa--grande {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-lg);
-}
-.marca__placa--grande img {
-  width: 26px;
-  height: 26px;
-}
-
-/* La firma de la casa. El wordmark es navy en el archivo: en oscuro se invierte
-   a blanco puro con un filtro. Se usa una vez, en el pie, y a tamaño de firma —
-   la página es de Terminus; Danil la firma. */
-.firma-casa {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
   text-decoration: none;
-  color: var(--texto-suave);
-}
-.firma-casa img {
-  width: 52px;
-  height: auto;
-  filter: brightness(0) invert(1);
-  opacity: 0.85;
-  transition: opacity 150ms ease-out;
-}
-.firma-casa:hover img {
-  opacity: 1;
-}
-.nav__acciones {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.nav__enlace {
-  color: var(--texto-suave);
-  text-decoration: none;
-  font-size: 0.875rem;
-  padding: 0.4rem 0.6rem;
-  border-radius: var(--r-sm);
-  transition: color 150ms ease-out;
-}
-.nav__enlace:hover {
-  color: var(--texto);
-}
-@media (max-width: 560px) {
-  .nav__enlace {
-    display: none;
-  }
+  letter-spacing: -0.01em;
 }
 
-/* ============================================================================
-   Botones
-   ========================================================================= */
-
+/* --- Botones ---------------------------------------------------------- */
 .boton {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--r-md);
+  gap: 0.55rem;
+  padding: 0.8rem 1.25rem;
+  border-radius: 6px;
   border: 1px solid transparent;
-  font: inherit;
-  font-size: 0.9375rem;
   font-weight: 600;
-  line-height: 1.2;
+  font-size: 0.95rem;
   text-decoration: none;
-  white-space: nowrap;
   transition:
-    background-color 150ms ease-out,
-    border-color 150ms ease-out,
-    transform 150ms ease-out;
+    background 120ms,
+    transform 120ms,
+    box-shadow 120ms;
+}
+.boton svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
 }
 .boton--accion {
   background: var(--accion);
@@ -532,1756 +150,329 @@ strong {
 }
 .boton--accion:hover {
   background: var(--accion-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -16px rgb(244 235 123 / 0.5);
 }
 .boton--linea {
   border-color: var(--borde-fuerte);
   color: var(--texto);
-  background: transparent;
 }
 .boton--linea:hover {
-  border-color: var(--texto-tenue);
-  background: var(--superficie);
-}
-.boton--chico {
-  padding: 0.5rem 0.85rem;
-  font-size: 0.875rem;
-}
-/* El hover se nota, pero no salta: 1px. */
-.boton:hover {
-  transform: translateY(-1px);
+  background: var(--superficie-alta);
+  transform: translateY(-2px);
 }
 .boton:active {
   transform: translateY(0);
 }
-
-/* Contorno sólido, no un anillo translúcido: por debajo de 3:1 quien navega
-   con teclado no sabe dónde está (WCAG 2.2 § 1.4.11). */
-a:focus-visible,
-.boton:focus-visible,
-[tabindex]:focus-visible {
+.boton:focus-visible {
   outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
-/* ============================================================================
-   Hero
-   ========================================================================= */
-
-/* El hero va centrado y corto: el objetivo es que la ventana de la aplicación
-   entre en pantalla sin tener que hacer scroll. */
+/* --- Hero ------------------------------------------------------------- */
 .hero {
-  position: relative;
-  padding-top: clamp(2.5rem, 6vw, 4rem);
-  padding-bottom: 0;
+  padding: clamp(2.5rem, 6vw, 4.5rem) 0 2rem;
   text-align: center;
 }
-.hero__texto {
-  max-width: 44rem;
+.hero > * {
+  animation: entra 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero > *:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.hero > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.hero > *:nth-child(3) {
+  animation-delay: 0.18s;
+}
+.hero > *:nth-child(4) {
+  animation-delay: 0.24s;
+}
+.hero > *:nth-child(5) {
+  animation-delay: 0.3s;
+}
+.hero > *:nth-child(6) {
+  animation-delay: 0.36s;
+}
+.hero > *:nth-child(7) {
+  animation-delay: 0.48s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero > * {
+    animation: none;
+  }
+}
+h1 {
   margin: 0 auto;
-  display: grid;
-  gap: 1.5rem;
-  justify-items: center;
-}
-/* `min(18ch, 92vw)` en vez de `18ch` a secas: en un teléfono angosto, 18
-   caracteres de este peso pueden pasarse del ancho real de la pantalla —el
-   tope en `vw` es la red que evita que la caja del titular exceda el
-   viewport. `overflow-wrap: anywhere` es la segunda red: si aun así una
-   palabra no entra, se parte en vez de desbordar en silencio. */
-.hero h1 {
-  max-width: min(18ch, 92vw);
-  overflow-wrap: anywhere;
-}
-.hero__bajada {
-  font-size: clamp(1.0625rem, 2.2vw, 1.25rem);
-  color: var(--texto-suave);
-  max-width: 40rem;
-  line-height: 1.55;
-  text-wrap: pretty;
-}
-/* --- Lanzador: la instalación dentro del hero -------------------------
-   El botón y el comando lado a lado, mismo peso y misma altura. El botón es
-   el camino de un clic; el comando, el de quien ya tiene Node. Debajo, una
-   nota corta por camino que acota su alcance — como la referencia. */
-.hero__lanzador {
-  width: 100%;
-  display: grid;
-  gap: 0.9rem;
-  justify-items: center;
-}
-.hero__instalar {
-  width: 100%;
-  max-width: 42rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem 1rem;
-  align-items: stretch;
-  text-align: left;
-}
-/* Cada camino: control arriba (fila 1fr, que iguala alturas entre columnas) y
-   la nota debajo. `min-width: 0` deja que el comando encoja en vez de empujar
-   el ancho de la página. */
-.hero__via {
-  min-width: 0;
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 0.45rem;
-}
-.hero__via > .boton,
-.hero__via > .comando {
-  width: 100%;
-  height: 100%;
-}
-.hero__via-nota {
-  font-size: 0.8125rem;
-  color: var(--texto-suave);
-}
-
-/* El botón grande del hero: el pixel más importante de la página. */
-.boton--grande {
-  padding: 0.9rem 1.4rem;
-  font-size: 1rem;
-  min-height: 3.25rem;
-}
-.boton__glifo {
-  width: 1.05rem;
-  height: 1.05rem;
-  flex: none;
-}
-
-/* macOS honesto: una línea seca cuando no hay build; un segundo botón —
-   contorno, peso secundario, no compite con el amarillo— cuando el flag la
-   enciende. */
-.hero__mac {
-  font-size: 0.8125rem;
-  color: var(--texto-tenue);
-}
-.hero__mac-boton {
-  min-width: 0;
-}
-
-/* Fila de agentes pegada a la instalación. Monocromo, chica, «Funciona con» a
-   la izquierda — la fila «Works with» de la referencia. Mismos glifos que la
-   sección de compatibilidad; aquí sin caja, para que sea una tira y no otra
-   parrilla. Se leen en tinta de texto, no encienden color. */
-.hero__compat {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem 0.9rem;
-}
-.hero__compat-rotulo {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--texto-tenue);
-}
-.hero__agentes {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem 1rem;
-}
-.hero__agente {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8125rem;
-  color: var(--texto-suave);
-}
-.hero__agente svg {
-  width: 15px;
-  height: 15px;
-  flex: none;
-  color: var(--texto-suave);
-}
-@media (max-width: 600px) {
-  .hero__instalar {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.hero__requisitos {
-  font-size: 0.8125rem;
-  color: var(--texto-suave);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  justify-content: center;
-  align-items: center;
-}
-/* Los separadores van en el gris de texto y no en el tenue: sobre el halo del
-   hero el tenue se queda en 2,8:1 y desaparece. */
-.hero__requisitos .punto {
-  color: var(--texto-suave);
-}
-/* El enlace al aviso de Windows: subrayado hairline para que se vea que es un
-   enlace sin encender otro color al lado del botón. */
-.hero__aviso {
-  color: var(--texto-suave);
-  text-decoration: none;
-  border-bottom: 1px solid var(--borde-fuerte);
-  transition: color 150ms ease-out;
-}
-.hero__aviso:hover {
-  color: var(--texto);
-}
-
-/* El titular tachado: "inteligencia" queda de pie, "artificial" se tacha y
-   se apaga. No se repone con nada — la idea no es venderse como una IA
-   mejor, es que a la que ya existe le falta gobernanza, y eso se cuenta con
-   pruebas más abajo (el recorrido, los permisos), no con otra palabra acá. */
-.diff {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  margin: 0;
-  padding: 0.55rem 0.9rem;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: var(--r-md);
-  background: var(--superficie);
-  font-size: 0.9375rem;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
-    0 1px 2px rgb(0 0 0 / 0.4);
-}
-.diff .mono {
-  color: var(--texto);
-}
-.diff__tachado {
-  color: var(--texto-tenue);
-  text-decoration: line-through;
-  text-decoration-thickness: 1.5px;
-}
-
-/* Pastilla de arranque: mono, hairline, sin relleno de color. */
-.pastilla {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.32rem 0.8rem 0.32rem 0.6rem;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: var(--r-full);
-  background: var(--superficie);
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--texto-suave);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
-    0 1px 2px rgb(0 0 0 / 0.4);
-}
-
-/* ============================================================================
-   La captura del producto
-
-   Es HTML, no una imagen: se lee con lector de pantalla, escala sin pixelarse
-   y no pesa. Y es la aplicación de verdad — los rótulos, las columnas y el
-   vocabulario («tarea», «material», «carpeta de trabajo», «Memoria») están
-   copiados de la app, no inventados para la foto. Una captura que promete una
-   interfaz que no existe se paga en la primera instalación.
-
-   Va en tema oscuro porque la app tiene tema oscuro y así la página no miente
-   ni se parte en dos. Ojo: en oscuro la app invierte la marca y su color de
-   acción es el amarillo, el mismo del botón de descarga. Por eso aquí dentro
-   el amarillo aparece solo como tinte del mensaje de la persona — el único
-   amarillo sólido de la página sigue siendo el CTA.
-   ========================================================================= */
-
-/* La ventana es el objeto que está más cerca de quien mira, y se nota: se
-   levanta del fondo con luz por arriba, un filo claro en el borde superior y
-   una sombra larga que cae hacia abajo. Tres planos —fondo, halo, ventana— sin
-   una sola superficie translúcida. */
-.marco {
-  position: relative;
-  /* La ventana no hereda el centrado del hero: dentro de la app todo está
-     alineado a la izquierda, como en cualquier interfaz de verdad. */
-  text-align: left;
-  /* `figure` trae 40 px de margen lateral del navegador; sin quitarlos la
-     ventana se encoge y en móvil pierde 80 px de los 342 que hay. */
-  margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
-  border: 1px solid rgb(255 255 255 / 0.13);
-  border-radius: 10px;
-  background: #000;
-  overflow: hidden;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
-    0 2px 6px rgb(0 0 0 / 0.5),
-    0 24px 60px -12px rgb(0 0 0 / 0.75),
-    0 60px 140px -40px rgb(101 57 245 / 0.45);
-}
-
-/* El halo de la ventana es la cuarta sombra de arriba, no una capa aparte: una
-   sombra morada de 140 px sin desplazamiento lateral. Un `div` extra detrás
-   habría que recortarlo contra el `overflow: hidden` del marco y no aportaba
-   nada que la sombra no haga. */
-
-/* Barra de ventana. Es una app de escritorio y tiene que parecerlo. */
-.ventana__barra {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  height: 36px;
-  padding: 0 0.75rem;
-  border-bottom: 1px solid var(--borde);
-  background: var(--superficie-honda);
-}
-.ventana__barra .marca__placa {
-  width: 19px;
-  height: 19px;
-  border-radius: var(--r-sm);
-}
-.ventana__barra .marca__placa img {
-  width: 13px;
-  height: 13px;
-}
-.ventana__titulo {
-  font-size: 0.75rem;
-  color: var(--texto-suave);
-}
-.ventana__controles {
-  margin-left: auto;
-  display: flex;
-  gap: 1rem;
-  color: var(--texto-tenue);
-  font-size: 0.7rem;
-  line-height: 1;
-}
-
-/* Fila de pestañas: a la izquierda las tareas abiertas —así se navega entre
-   varias a la vez—, a la derecha el panel, que también es por pestañas
-   (Adjuntos/Artefactos/Código) y no una columna que está siempre puesta. Es
-   la fila que le faltaba a la captura vieja para ser la app real, no una
-   ilustración de la app. */
-.pestanas-fila {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  height: 34px;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--borde);
-  background: var(--superficie-honda);
-}
-.pestanas__icono {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  flex: none;
-  border-radius: var(--r-sm);
-  color: var(--texto-tenue);
-}
-.pestanas {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  min-width: 0;
-  overflow: hidden;
-}
-.pestana {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  max-width: 12rem;
-  padding: 0.3rem 0.55rem;
-  border-radius: var(--r-sm);
-  font-size: 0.75rem;
-  color: var(--texto-tenue);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* La pestaña de tarea activa: caja clara y la equis de cerrar, como en la
-   app. Las del panel (ver abajo) marcan su activa distinto —con un filo, no
-   una caja— porque son pestañas de una sola fila, no tareas para cerrar. */
-.pestana--activa {
-  color: var(--texto);
-  background: var(--superficie-alta);
-  font-weight: 500;
-}
-.pestana__x {
-  width: 10px;
-  height: 10px;
-  flex: none;
-  opacity: 0.7;
-}
-.pestanas--panel {
-  margin-left: auto;
-  gap: 0.9rem;
-  padding-right: 0.25rem;
-}
-.pestana--panel {
-  padding: 0.3rem 0.1rem;
-  border-radius: 0;
-  border-bottom: 2px solid transparent;
-}
-.pestana--panel.pestana--activa {
-  background: none;
-  border-bottom-color: var(--accion);
-}
-
-.ventana__cuerpo {
-  display: grid;
-  grid-template-columns: 216px minmax(0, 1fr) 256px;
-  min-height: 452px;
-  background: #000;
-}
-
-/* `overflow-x: hidden`: sin esto, una fila que no entra —la franja de costo,
-   una línea de la bitácora con un nombre largo— no se envuelve, se derrama
-   sobre la columna de al lado. Una columna de grid no recorta el contenido
-   de su vecina sola; hay que decírselo a cada panel. Vertical se deja libre:
-   el `min-height` de la ventana ya evita que haga falta. */
-.panel {
-  padding: 0.75rem;
-  display: grid;
-  gap: 0.5rem;
-  align-content: start;
-  min-width: 0;
-  overflow-x: hidden;
-}
-.panel--izq {
-  border-right: 1px solid var(--borde);
-}
-.panel--der {
-  border-left: 1px solid var(--borde);
-}
-.panel--centro {
-  padding: 0;
-  gap: 0;
-  align-content: stretch;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-}
-
-.panel__rotulo {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--texto-tenue);
-  padding-inline: 0.25rem;
-}
-
-/* Botón «Nueva tarea»: en tema oscuro la escala de neutros se invierte y el
-   botón sólido queda claro sobre negro. Se dibuja como está, no como quedaría
-   más bonito en la página. */
-.boton-app {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.6rem;
-  border-radius: var(--r-md);
-  background: #fafafa;
-  color: #0a0a0a;
-  font-size: 0.8125rem;
+  max-width: 15ch;
+  font-size: clamp(3rem, 8vw, 5.8rem);
+  line-height: 0.98;
   font-weight: 700;
+  letter-spacing: -0.045em;
 }
-
-/* Fila de la barra lateral: proyecto o tarea. */
-.fila {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.4rem;
-  border-radius: var(--r-sm);
-  font-size: 0.8125rem;
+.bajada {
+  margin: 1.5rem auto 0;
+  max-width: 34rem;
+  font-size: 1.15rem;
   color: var(--texto-suave);
-  min-width: 0;
 }
-.fila--activa {
-  background: var(--superficie-alta);
-  color: var(--texto);
-}
-.fila--hija {
-  padding-left: 1.35rem;
-  font-size: 0.78125rem;
-}
-.fila__nombre {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.fila__marca {
-  margin-left: auto;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.625rem;
-  letter-spacing: 0.02em;
-  color: var(--texto-tenue);
-  white-space: nowrap;
-}
-
-/* Glifo de icono. La app usa lucide; aquí basta con la silueta, dibujada en
-   trazo para no cargar una librería entera por cuatro iconos decorativos. */
-.icono {
-  width: 13px;
-  height: 13px;
-  flex: none;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.85;
-}
-
-.punto-estado {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: var(--green);
-  flex: none;
-}
-.punto-estado--apagado {
-  background: var(--texto-tenue);
-}
-
-/* Etiquetas de la app. `solo lectura` es la más importante de la página: es
-   el contrato del producto dicho en dos palabras. */
-.sello {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.05rem 0.35rem;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: var(--r-sm);
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.625rem;
-  line-height: 1.5;
-  color: var(--texto-suave);
-  white-space: nowrap;
-}
-.sello--salida {
-  border-color: rgb(95 204 121 / 0.45);
-  color: var(--green);
-}
-.sello--entrada {
-  border-style: dashed;
-}
-
-/* --- Franja superior de la conversación -------------------------------- */
-.franja {
+.descargas {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.75rem;
-  min-height: 44px;
-  padding: 0.5rem 1rem;
+  margin-top: 2.25rem;
 }
-.franja__titulo {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--texto);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.franja__dato {
-  font-size: 0.6875rem;
+.datos {
+  margin: 1.1rem 0 0;
+  font-size: 0.8rem;
   color: var(--texto-tenue);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
-.medidor {
-  width: 56px;
-  height: 4px;
-  border-radius: 9999px;
-  background: var(--superficie-alta);
-  overflow: hidden;
-  flex: none;
+.datos a {
+  text-decoration: none;
 }
-.medidor__lleno {
-  height: 100%;
-  background: var(--texto-tenue);
-}
-
-/* --- Conversación ------------------------------------------------------
-   Sin avatares: en una conversación de dos, el lado y el fondo ya dicen
-   quién habla. Es la decisión que toma la app y se respeta. */
-.hilo {
-  padding: 0.5rem 1rem 1rem;
-  display: grid;
-  gap: 0.85rem;
-  align-content: start;
-}
-
-.dicho {
-  max-width: 30rem;
-  margin-left: auto;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--r-lg);
-  /* Tinte del color de acción del tema oscuro de la app, al 8%. */
-  background: rgb(244 235 123 / 0.08);
-  font-size: 0.875rem;
-  line-height: 1.5;
+.datos a:hover {
   color: var(--texto);
 }
-
-.firma {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-}
-.firma__agente {
-  font-weight: 600;
-  color: var(--texto);
-}
-.firma__cuenta {
-  color: var(--texto-tenue);
+.punto {
+  margin: 0 0.45rem;
 }
 
-/* Línea de tiempo de lo que hizo el agente: caja con filas divididas, verbo
-   en prosa y sujeto en mono. Es el registro, y es lo que hace que la
-   respuesta se pueda creer. */
-.linea {
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie-honda);
-  overflow: hidden;
-}
-.acto {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.6rem;
-  border-bottom: 1px solid var(--borde);
-  font-size: 0.75rem;
-  color: var(--texto-suave);
-}
-.acto:last-child {
-  border-bottom: 0;
-}
-.acto__verbo {
-  font-weight: 500;
-  color: var(--texto);
-  white-space: nowrap;
-}
-.acto__sujeto {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  color: var(--texto-tenue);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.acto__marca {
-  margin-left: auto;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--green);
-  white-space: nowrap;
-}
-
-.respuesta {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--texto-suave);
-}
-.respuesta strong {
-  color: var(--texto);
-}
-
-/* Entrega: lo que la tarea dejó escrito, anunciado donde se produjo. */
-.entrega {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.55rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie);
-  font-size: 0.75rem;
-  color: var(--texto-suave);
-  box-shadow: var(--sombra-sm);
-}
-.entrega__ruta {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  color: var(--texto);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.entrega__peso {
-  margin-left: auto;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  color: var(--texto-tenue);
-  white-space: nowrap;
-}
-
-/* Caja de escribir. Redonda de verdad —es el único elemento de la app que lo
-   es— y con la fila de contexto encima, que dice qué está leyendo la tarea. */
-.compositor {
-  margin: 0 1rem 0.75rem;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: 18px;
-  background: var(--superficie);
-}
-.compositor__contexto {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  padding: 0.5rem 0.75rem 0;
-  font-size: 0.6875rem;
-  color: var(--texto-tenue);
-}
-.compositor__fila {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.6rem;
-}
-.compositor__texto {
-  font-size: 0.875rem;
-  color: var(--texto-tenue);
-  flex: 1;
-  min-width: 0;
-}
-.tecla-redonda {
-  width: 26px;
-  height: 26px;
-  border-radius: 9999px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  border: 1px solid var(--borde-fuerte);
-  color: var(--texto-suave);
-}
-/* Sólido, no un contorno más: así lo pinta la app de verdad —el mismo
-   amarillo del botón de descarga, aplicado al mismo gesto (la acción
-   primaria de la pantalla en la que está). */
-.tecla-redonda--enviar {
-  background: var(--accion);
-  border-color: var(--accion);
-  color: var(--accion-texto);
-}
-.selector {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: var(--r-sm);
-  font-size: 0.75rem;
-  color: var(--texto-suave);
-  white-space: nowrap;
-}
-
-/* --- Franja de consumo (el pie de la ventana) -------------------------- */
-.consumo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: 28px;
-  padding: 0 0.6rem;
-  border-top: 1px solid var(--borde);
-  background: var(--superficie-honda);
-  font-size: 0.6875rem;
-  color: var(--texto-tenue);
-  font-variant-numeric: tabular-nums;
-}
-
-/* --- Artefactos (columna derecha) -------------------------------------- */
-.artefacto {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-sm);
-  background: var(--superficie-honda);
-  font-size: 0.75rem;
-  min-width: 0;
-}
-.artefacto__ruta {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  color: var(--texto);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.artefacto__peso {
-  margin-left: auto;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.625rem;
-  color: var(--texto-tenue);
-  white-space: nowrap;
-}
-.boton-fantasma {
-  margin-top: 0.4rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--borde);
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--texto-suave);
-}
-
-/* El punto de quiebre bajó de 900px a 620px: con `overflow-x: hidden` en
-   cada panel (ver `.panel` arriba) las tres columnas ya no se derraman una
-   sobre otra al angostarse, así que pueden aguantar mucho más abajo de lo
-   que aguantaban antes —probado a mano cada ~50px hasta acá—. Por debajo de
-   esto la columna central queda en dos o tres letras por línea: ahí ya no
-   es una ventana angosta, es un borrón, y se cae a la sola conversación. */
-@media (max-width: 620px) {
-  .ventana__cuerpo {
-    grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
-  }
-  .panel--izq,
-  .panel--der {
-    display: none;
-  }
-  .dicho {
-    max-width: 100%;
-  }
-  .franja {
-    padding: 0.5rem 0.75rem;
-  }
-  .franja__dato,
-  .medidor,
-  .selector {
-    display: none;
-  }
-  .hilo {
-    padding: 0.5rem 0.75rem 0.85rem;
-  }
-  .compositor {
-    margin: 0 0.75rem 0.75rem;
-  }
-  .consumo .franja-larga {
-    display: none;
-  }
-  /* La fila de pestañas es la primera en desbordar a lo ancho: el switch de
-     panel (Adjuntos/Artefactos/Código) no cabe con las pestañas de tarea. Se
-     va entero —igual que el selector de modelo— y la pestaña activa se
-     encoge para que la fila no empuje el ancho de la página. */
-  .pestanas--panel,
-  .pestanas__icono {
-    display: none;
-  }
-  .pestana {
-    max-width: 8.5rem;
-  }
-}
-
-/* ============================================================================
-   Tarjetas
-   ========================================================================= */
-
-.rejilla {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-@media (max-width: 820px) {
-  .rejilla {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* La luz viene de arriba en toda la página, así que cada superficie lleva su
-   filo claro en el borde superior y su sombra debajo. Es lo que hace que una
-   tarjeta se lea como una placa apoyada y no como un rectángulo pintado. */
-.tarjeta {
-  display: grid;
-  align-content: start;
-  gap: 0.6rem;
-  padding: 1.5rem;
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: var(--r-lg);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.05),
-    0 1px 2px rgb(0 0 0 / 0.4),
-    0 12px 28px -18px rgb(0 0 0 / 0.9);
-  transition:
-    border-color 150ms ease-out,
-    transform 150ms ease-out,
-    box-shadow 150ms ease-out;
-}
-.tarjeta:hover {
-  border-color: var(--borde-fuerte);
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
-    0 2px 4px rgb(0 0 0 / 0.4),
-    0 20px 40px -20px rgb(0 0 0 / 0.95);
-}
-.tarjeta p {
-  font-size: 0.9375rem;
-  color: var(--texto-suave);
-  line-height: 1.6;
-}
-/* Cada tarjeta enseña la cosa, no solo la cuenta: debajo del texto va el dato
-   real (una ruta, un binario, una cuenta, un servidor conectado). */
-.tarjeta__prueba {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie-honda);
-  display: grid;
-  gap: 0.4rem;
-}
-
-/* Anotación de dato: mono, chica, apagada. Rutas, binarios, notas al pie de
-   una tarjeta. Nunca frases — para eso está el texto normal. */
-.dato {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  line-height: 1.6;
-  color: var(--texto-suave);
-  min-width: 0;
-}
-.dato__fin {
-  margin-left: auto;
-  color: var(--texto-tenue);
-  white-space: nowrap;
-}
-
-.chips {
+/* En teléfono la pregunta baja a su renglón y el comando no se parte: un
+   `npx @danil-` / `labs/terminus` en dos líneas ya no se puede copiar a ojo. */
+.npx {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-}
-.chip {
-  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.55rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-sm);
-  background: var(--superficie);
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  color: var(--texto-suave);
-}
-.chip .icono {
-  width: 11px;
-  height: 11px;
-}
-
-/* ============================================================================
-   Instalación — bloque de comando y líneas de dato
-
-   El bloque de comando es mono sobre superficie honda con un botón de copiar
-   discreto: se lee como un comando, no como un CTA. Vive en el hero, al lado
-   del botón de descarga, con el mismo peso visual.
-   ========================================================================= */
-
-/* Línea de dato: mono/gris tenue, una sola línea. Nunca un párrafo. */
-.dato-linea {
-  font-size: 0.8125rem;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
   color: var(--texto-tenue);
 }
-
-/* Bloque de comando copiable. El comando ocupa el espacio; el botón queda al
-   margen. Si el comando no cabe, hace scroll horizontal dentro de su caja y no
-   rompe el ancho de la página. */
 .comando {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.55rem 0.55rem 0.85rem;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: var(--r-md);
-  background: var(--superficie-honda);
+  gap: 0.6rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
 }
 .comando code {
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
   white-space: nowrap;
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.875rem;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
   color: var(--texto);
 }
 .comando__copiar {
-  flex: none;
-  font: inherit;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--texto-suave);
-  background: var(--superficie-alta);
+  padding: 0.25rem 0.55rem;
   border: 1px solid var(--borde-fuerte);
-  border-radius: var(--r-sm);
-  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--texto-tenue);
+  font-size: 0.72rem;
   cursor: pointer;
-  transition:
-    color 150ms ease-out,
-    border-color 150ms ease-out;
 }
 .comando__copiar:hover {
+  background: var(--superficie-alta);
   color: var(--texto);
-  border-color: var(--texto-tenue);
 }
 
-/* ============================================================================
-   Estado (tabla de plataformas)
-   ========================================================================= */
-
-.estado {
-  display: grid;
-  gap: 0;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.05),
-    0 16px 40px -28px rgb(0 0 0 / 0.9);
+.agentes {
+  margin-top: 3.25rem;
 }
-.estado__fila {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--borde);
-  background: var(--superficie);
-}
-.estado__fila:last-child {
-  border-bottom: 0;
-}
-.estado__que {
-  font-weight: 600;
-  font-size: 0.9375rem;
-}
-/* El rótulo «Código fuente» enlaza al repo público. Hereda el peso del rótulo
-   y marca que es enlace con un subrayado hairline, sin encender otro color. */
-.estado__enlace {
-  color: var(--texto);
-  text-decoration: none;
-  border-bottom: 1px solid var(--borde-fuerte);
-  transition: color 150ms ease-out;
-}
-.estado__enlace:hover {
-  color: var(--texto-suave);
-}
-.estado__detalle {
-  font-size: 0.875rem;
-  color: var(--texto-suave);
-}
-.estado__marca {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
+.agentes__rotulo {
+  margin: 0 0 0.9rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--texto-suave);
+  color: var(--texto-tenue);
+}
+.agentes__lista {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agente {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  white-space: nowrap;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+  transition:
+    transform 150ms,
+    border-color 150ms,
+    background 150ms,
+    color 150ms;
 }
-@media (max-width: 700px) {
-  .estado__fila {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .estado__detalle {
-    grid-column: 1 / -1;
-  }
+.agente:hover {
+  transform: translateY(-2px);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-alta);
+  color: var(--texto);
 }
 
-/* ============================================================================
-   Cierre y pie
-   ========================================================================= */
-
-/* El cierre recupera la luz del principio. El fondo es fijo y su halo se queda
-   arriba: sin esto, la página termina en un plano apagado justo donde hay que
-   pedir la descarga. */
-.cierre {
+.converge {
   position: relative;
-  text-align: center;
-  display: grid;
-  gap: 1.5rem;
-  justify-items: center;
+  width: 1px;
+  height: 3.5rem;
+  margin: 2.75rem auto 0;
 }
-/* El halo se dimensiona contra su propia caja y nunca contra el viewport:
-   `min(52rem, 100%)` centrado en `.cierre` no puede sobresalir por los lados.
-   Con `120%` sí sobresalía —410 px dentro de una caja de 342— y eso son 10 px
-   de scroll horizontal en un teléfono. No lo veía ningún barrido del DOM:
-   `querySelectorAll` no devuelve pseudo-elementos, así que la única señal era
-   `scrollWidth` contra `clientWidth`. */
-.cierre::before {
-  content: "";
+.converge__linea {
   position: absolute;
-  left: 50%;
-  top: -5rem;
-  width: min(52rem, 100%);
-  max-width: 100%;
-  height: 26rem;
-  transform: translateX(-50%);
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    50% 50% at 50% 50%,
-    rgb(101 57 245 / 0.16),
-    transparent 70%
-  );
+  inset: 0;
+  border-left: 1px dashed var(--borde-fuerte);
+}
+.converge__punto {
+  position: absolute;
+  left: -3px;
+  top: -4%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accion);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .converge__punto {
+    animation: converge-caer 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+@keyframes converge-caer {
+  0% {
+    top: -4%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* --- Cómo funciona ---------------------------------------------------- */
+.como {
+  padding: clamp(5rem, 10vw, 7.5rem) 0 1rem;
+}
+.como h2,
+.cierre h2 {
+  margin: 0 0 2.5rem;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.pasos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.paso {
+  padding: 1.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  transition:
+    transform 180ms,
+    border-color 180ms,
+    background 180ms;
+}
+.paso:hover {
+  transform: translateY(-3px);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-alta);
+}
+.paso__num {
+  font-size: 0.8rem;
+  color: var(--accion);
+}
+.paso h3 {
+  margin: 0.7rem 0 0.5rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.paso p {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+}
+@media (max-width: 780px) {
+  .pasos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Cierre ----------------------------------------------------------- */
+.cierre {
+  padding: clamp(5rem, 10vw, 7rem) 0;
+  text-align: center;
 }
 .cierre h2 {
-  max-width: 20ch;
+  margin-bottom: 0;
 }
 
+/* --- Pie -------------------------------------------------------------- */
 .pie {
-  position: relative;
-  padding-block: 2.5rem 3.5rem;
-}
-.pie::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 1.5rem;
-  right: 1.5rem;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgb(255 255 255 / 0.13) 15%,
-    rgb(255 255 255 / 0.13) 85%,
-    transparent
-  );
+  border-top: 1px solid var(--borde);
+  padding: 2rem 0 2.5rem;
+  font-size: 0.85rem;
+  color: var(--texto-tenue);
 }
 .pie__fila {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.875rem;
-  color: var(--texto-suave);
+  gap: 1rem;
 }
 .pie__marca {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
 }
-.pie a {
-  color: var(--texto-suave);
+/* El wordmark es tinta oscura sobre transparente —está hecho para papel y para
+   fondo claro—, así que sobre el navy hay que darle la vuelta o no se ve. */
+.pie__marca img {
+  display: block;
+  height: 15px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
+}
+.pie__enlaces {
+  display: flex;
+  gap: 0.5rem;
+}
+.pie__enlaces a {
   text-decoration: none;
-  border-bottom: 1px solid var(--borde-fuerte);
-  transition: color 150ms ease-out;
 }
-.pie a:hover {
+.pie__enlaces a:hover {
   color: var(--texto);
 }
-
-.sr-solo {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* ============================================================================
-   Cómo funciona — tres pasos
-
-   Progresión numerada (01/02/03), como el índice de secciones de Linear: el
-   número ordena sin gastar un título. Cada paso enseña el dato, no solo lo
-   cuenta — debajo del texto va el mismo vocabulario de la app (`solo lectura`,
-   el registro de actos, el artefacto de salida). No hay flecha entre tarjetas:
-   una línea decorativa que cruza el hueco es lo primero que desborda a lo
-   ancho, y el número ya dice el orden.
-   ========================================================================= */
-
-.pasos {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-@media (max-width: 820px) {
-  .pasos {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.paso {
-  display: grid;
-  align-content: start;
-  gap: 0.55rem;
-  padding: 1.5rem;
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: var(--r-lg);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.05),
-    0 1px 2px rgb(0 0 0 / 0.4),
-    0 12px 28px -18px rgb(0 0 0 / 0.9);
-}
-.paso__num {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
+.yucatan {
+  margin: 2rem 0 0;
+  text-align: center;
   color: var(--texto-suave);
 }
-.paso h3 {
-  margin-top: 0.1rem;
-}
-.paso p {
-  font-size: 0.9375rem;
-  color: var(--texto-suave);
-  line-height: 1.6;
-}
-/* El mismo cristal de dato que usan las tarjetas de reglas: superficie honda,
-   hairline, radio medio. Une visualmente los dos bloques. */
-.paso__visual {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie-honda);
-  display: grid;
-  gap: 0.4rem;
-}
-
-/* ============================================================================
-   Momentos — la app en más de una pantalla
-
-   Una sola captura cuenta una cosa; el producto hace varias. Estos son dos
-   momentos distintos —conectar una herramienta y leer el artefacto que
-   quedó— en el mismo chrome de ventana del hero, alternando lado (texto ·
-   vista / vista · texto) para que la página respire en vez de apilar bloques
-   centrados. El ritmo alterno es lo que le da pulso a Linear.
-   ========================================================================= */
-
-.momento {
-  display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: clamp(1.5rem, 4vw, 3rem);
-  align-items: center;
-}
-.momento + .momento {
-  margin-top: clamp(2.75rem, 6vw, 4.5rem);
-}
-/* Invertido: el texto se va a la derecha y la vista a la izquierda. En móvil
-   el orden vuelve a texto→vista para que se lea antes de ver. */
-.momento--inverso .momento__texto {
-  order: 2;
-}
-@media (max-width: 820px) {
-  .momento {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .momento--inverso .momento__texto {
-    order: 0;
-  }
-}
-.momento__texto {
-  display: grid;
-  gap: 0.85rem;
-  align-content: center;
-}
-.momento__texto h3 {
-  font-size: clamp(1.15rem, 2.4vw, 1.35rem);
-  line-height: 1.25;
-}
-.momento__texto p {
-  font-size: 1rem;
-  color: var(--texto-suave);
-  line-height: 1.6;
-}
-
-/* Vista: la ventana del hero en chico. Mismo filo claro arriba, misma sombra
-   larga y el mismo halo morado contenido detrás — la profundidad la hacen tres
-   planos, no una capa translúcida. */
-.vista {
-  border: 1px solid rgb(255 255 255 / 0.13);
-  border-radius: 10px;
-  background: #000;
-  overflow: hidden;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
-    0 2px 6px rgb(0 0 0 / 0.5),
-    0 20px 50px -16px rgb(0 0 0 / 0.7),
-    0 44px 100px -52px rgb(101 57 245 / 0.4);
-}
-.vista__cuerpo {
-  padding: 1rem;
-  display: grid;
-  gap: 0.5rem;
-  align-content: start;
-  min-height: 224px;
-}
-.vista__fila {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie-honda);
-  font-size: 0.8125rem;
-  color: var(--texto-suave);
-  min-width: 0;
-}
-.vista__nombre {
-  font-weight: 500;
-  color: var(--texto);
-  white-space: nowrap;
-}
-.vista__sub {
-  color: var(--texto-tenue);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.vista__fin {
-  margin-left: auto;
-  flex: none;
-}
-/* Glifo de la herramienta dentro de la fila: mismo trazo hairline que el resto
-   de iconos de la app. */
-.vista__marca {
-  width: 18px;
-  height: 18px;
-  flex: none;
-  color: var(--texto-suave);
-}
-/* La vista del artefacto: un .md abierto. El encabezado, el cuerpo y la lista
-   son texto de verdad, no una imagen — se lee y escala. */
-.vista__doc h4 {
-  font-size: 0.95rem;
-  line-height: 1.3;
-  margin: 0.35rem 0 0;
-}
-.vista__doc p {
-  font-size: 0.8125rem;
-  color: var(--texto-suave);
-  line-height: 1.55;
-}
-.vista__doc ul {
-  margin: 0.1rem 0 0;
-  padding-left: 1.1rem;
-  color: var(--texto-suave);
-  font-size: 0.8125rem;
-  line-height: 1.6;
-}
-.vista__doc ul strong {
-  color: var(--texto);
-}
-.vista__cabecera {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.2rem;
-  border-bottom: 1px solid var(--borde);
-}
-
-/* ============================================================================
-   Compatible con — filas de logos
-
-   Agentes y herramientas como un muro de logos en una sola tinta: monocromo
-   sobre superficie sólida, el nombre real lleva el reconocimiento y el glifo
-   pone textura. Iconografía consistente —mismo tamaño, mismo trazo, misma
-   caja— como la parrilla de features de Raycast. Se encienden al pasar por
-   encima, no antes.
-   ========================================================================= */
-
-.compat {
-  display: grid;
-  gap: 2rem;
-}
-.compat__grupo {
-  display: grid;
-  gap: 0.85rem;
-}
-.logos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-.logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie);
-  color: var(--texto-suave);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.04),
-    0 1px 2px rgb(0 0 0 / 0.4);
-  transition:
-    border-color 150ms ease-out,
-    color 150ms ease-out,
-    transform 150ms ease-out;
-}
-.logo:hover {
-  border-color: var(--borde-fuerte);
-  color: var(--texto);
-  transform: translateY(-1px);
-}
-.logo__glifo {
-  width: 20px;
-  height: 20px;
-  flex: none;
-}
-.logo__nombre {
-  font-size: 0.875rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* ============================================================================
-   Cierre — recapitulación del contrato
-
-   El cierre repite en mono la regla que gobierna todo: el repo en solo lectura,
-   el agente en su carpeta, tu suscripción. Tres datos, no una frase de venta.
-   ========================================================================= */
-
-.cierre__recap {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem 0.9rem;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
-  color: var(--texto-tenue);
-}
-.cierre__recap span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.cierre__recap .punto-estado {
-  background: var(--green);
-}
-
-/* ============================================================================
-   El recorrido — las cuatro etapas de una tarea.
-
-   Es una lista ordenada de verdad (`<ol>`), no cuatro cajas: el orden es el
-   argumento. El número va en mono y grande porque es lo que se sigue con el
-   ojo al bajar, y la línea vertical que los une existe para que se lea como
-   una cadena y no como cuatro cosas sueltas.
-   ========================================================================= */
-
-.recorrido {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0;
-}
-
-.etapa {
-  display: grid;
-  grid-template-columns: 3.25rem 1fr;
-  gap: 0 1.25rem;
-  padding: 1.5rem 0;
-  border-top: 1px solid var(--borde);
-  position: relative;
-}
-.etapa:first-child {
-  border-top: 0;
-}
-
-/* La línea que encadena las etapas. Nace bajo el número y muere en el borde
-   de la siguiente; en la última no se dibuja, porque no lleva a ningún lado. */
-.etapa::before {
-  content: "";
-  position: absolute;
-  left: 1.55rem;
-  top: 3.6rem;
-  bottom: 0;
-  width: 1px;
-  background: var(--borde);
-}
-.etapa:last-child::before {
-  display: none;
-}
-
-.etapa__num {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--texto-tenue);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: var(--r-sm);
-  background: var(--superficie);
-  position: relative;
-  z-index: 1;
-}
-
-.etapa__cuerpo h3 {
-  margin: 0.25rem 0 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.etapa__cuerpo p {
-  margin: 0 0 0.75rem;
-  color: var(--texto-suave);
-  max-width: 62ch;
-}
-.etapa__cuerpo p:last-child {
-  margin-bottom: 0;
-}
-
-/* El dato de máquina de cada etapa: la misma caja que `.dato`, con sitio para
-   una marca a la izquierda y un estado a la derecha. */
-.etapa__dato {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-sm);
-  background: var(--superficie-honda);
-  font-size: 0.78rem;
-  color: var(--texto-suave);
-}
-.etapa__fin {
-  margin-left: auto;
-  color: var(--texto-tenue);
-  font-size: 0.72rem;
-  white-space: nowrap;
-}
-.etapa__marca {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  background: var(--purple);
-  color: #fff;
-}
-
-@media (max-width: 640px) {
-  .etapa {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  .etapa::before {
-    display: none;
-  }
-}
-
-/* ============================================================================
-   Permisos — la tabla que sale de la API, no de la memoria.
-
-   Es una rejilla y no una `<table>` porque en móvil la tercera columna se cae
-   debajo; una tabla real ahí obliga a scroll horizontal, que es la forma más
-   rápida de que nadie la lea.
-   ========================================================================= */
-
-.permisos {
-  border: 1px solid var(--borde);
-  border-radius: var(--r-lg);
-  background: var(--superficie);
-  overflow: hidden;
-}
-
-.permisos__cabecera,
-.permisos__fila {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 7rem minmax(0, 1.6fr);
-  gap: 1rem;
-  align-items: center;
-  padding: 0.7rem 1rem;
-}
-
-.permisos__cabecera {
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--texto-tenue);
-  background: var(--superficie-honda);
-  border-bottom: 1px solid var(--borde);
-}
-
-.permisos__fila {
-  border-top: 1px solid var(--borde);
-  font-size: 0.85rem;
-}
-.permisos__fila:first-of-type {
-  border-top: 0;
-}
-
-.permisos__que {
-  font-size: 0.82rem;
-  color: var(--texto);
-}
-
-/* El nivel es la columna que importa: escritura se marca, lectura no. La
-   distinción se hace con borde y texto, no con relleno — un chip lleno de
-   color aquí competiría con el botón de acción de la página. */
-.permisos__nivel {
-  justify-self: start;
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.03em;
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--yellow);
-  color: var(--yellow);
-}
-.permisos__nivel--lectura {
-  border-color: var(--borde-fuerte);
-  color: var(--texto-tenue);
-}
-
-.permisos__para {
-  color: var(--texto-suave);
-  font-size: 0.82rem;
-}
-
-@media (max-width: 720px) {
-  .permisos__cabecera {
-    display: none;
-  }
-  .permisos__fila {
-    grid-template-columns: 1fr auto;
-    row-gap: 0.35rem;
-  }
-  .permisos__para {
-    grid-column: 1 / -1;
-  }
-}
-
-/* La nota que va debajo de un bloque de datos y lo acota. Más chica que el
-   cuerpo y con el ancho corto, para que se lea como pie y no como párrafo. */
-.nota-fina {
-  margin: 1rem 0 0;
-  max-width: 68ch;
-  font-size: 0.82rem;
-  line-height: 1.6;
-  color: var(--texto-tenue);
-}
-.nota-fina strong {
-  color: var(--texto-suave);
-  font-weight: 600;
-}
-
-/* ============================================================================
-   Los cinco agentes, y las lenguas. Dos filas de pastillas del mismo material:
-   superficie sólida, borde hairline, dato en mono.
-   ========================================================================= */
-
-.agentes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.6rem;
-}
-
-.agente {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie);
-}
-.agente__nombre {
-  font-size: 0.88rem;
-  font-weight: 500;
-}
-.agente__casa {
-  margin-left: auto;
-  font-size: 0.68rem;
-  color: var(--texto-tenue);
-  white-space: nowrap;
-}
-
-.lenguas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-.lengua {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.55rem;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-md);
-  background: var(--superficie);
-}
-.lengua__nombre {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-.lengua__nota {
-  font-size: 0.68rem;
-  color: var(--texto-tenue);
-}
-
-/* La barra de arriba es `sticky`, así que un salto de anclaje deja el título
-   debajo de ella. Los destinos del menú reservan su alto: sin esto, quien pulsa
-   «Permisos» aterriza en un encabezado tapado y cree que el enlace está roto. */
-:target,
-[id="recorrido"],
-[id="permisos"],
-[id="estado"],
-[id="instalar"] {
-  scroll-margin-top: 5.5rem;
-}
-
-/* El dato del pull request lleva marca, título y estado en una línea; el
-   título es lo único que puede ceder, así que se le deja partir y las otras
-   dos se quedan enteras. */
-.etapa__dato .etapa__marca {
-  flex: none;
-  align-self: flex-start;
-  margin-top: 0.1rem;
-}
-
-/* La versión publicada, al lado de la descarga. Es un enlace a las notas y no
-   un rótulo muerto: quien mira el número suele querer saber qué trae. El punto
-   verde lo empareja con los demás indicadores de estado de la página. */
-.version {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.1rem 0.4rem 0.1rem 0.35rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--r-sm);
-  color: var(--texto-suave);
-  text-decoration: none;
-  transition:
-    border-color 150ms ease-out,
-    color 150ms ease-out;
-}
-.version:hover {
-  border-color: var(--borde-fuerte);
-  color: var(--texto);
-}
-.version__punto {
-  width: 5px;
-  height: 5px;
-  border-radius: var(--r-full);
-  background: var(--green);
+.yucatan span {
+  color: var(--accion);
 }

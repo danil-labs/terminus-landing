@@ -1,0 +1,133 @@
+---
+/**
+ * La app de verdad, dentro de la página.
+ *
+ * `/demo/` es el front de `harness-app` compilado tal cual, con el backend
+ * simulado (`scripts/demo.mjs`). Se toca como la app: barras, tareas,
+ * Configuración, apariencia, consumos, el árbol del proyecto, y escribir una
+ * tarea para ver al agente trabajar. Las respuestas son simuladas, y el propio
+ * agente de la demo lo dice.
+ *
+ * **Se pinta a ancho de escritorio y se escala.** La app está hecha para una
+ * ventana de computadora; metida a 390 px se reacomodaría en algo que no es
+ * Terminus. Así que el marco tiene un ancho lógico mínimo y se reduce entero,
+ * como una captura, pero viva.
+ */
+const ANCHO = 1280;
+const ALTO = 800;
+---
+
+<div class="demo" style={`--ancho: ${ANCHO}px; --alto: ${ALTO}px;`} data-demo>
+  <div class="demo__marco">
+    <div class="demo__barra">
+      <span class="demo__puntos" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span aria-hidden="true">Terminus</span>
+      <!-- El único botón que la demo pone encima de la app real. La app no
+           deshace un turno guionado ni una tarea nueva por su cuenta —no hay
+           «volver al inicio» dentro de ella—, así que si alguien deja la
+           ventana en un estado raro, esto la regresa entera: recarga el
+           iframe, que reinicia `simulador.js` desde cero. -->
+      <button type="button" class="demo__reiniciar" data-demo-reiniciar>
+        Reiniciar demo
+      </button>
+    </div>
+    <div class="demo__lienzo">
+      <iframe
+        data-demo-iframe
+        src="/demo/"
+        title="Terminus: la app real, con respuestas simuladas"
+        width={ANCHO}
+        height={ALTO}
+        loading="lazy"></iframe>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  /* La escala del lienzo: el iframe se pinta a ancho de escritorio y se reduce
+     al ancho que haya. Sin JavaScript queda a su tamaño, con scroll. */
+  (() => {
+    const demo = document.querySelector("[data-demo]");
+    if (!demo) return;
+    const lienzo = demo.querySelector(".demo__lienzo");
+    const ajustar = () => {
+      const escala = Math.min(1, lienzo.clientWidth / 1280);
+      demo.style.setProperty("--escala", String(escala));
+    };
+    new ResizeObserver(ajustar).observe(lienzo);
+    ajustar();
+
+    // Reasignar `src` fuerza una recarga completa del iframe: vuelve a correr
+    // `simulador.js` desde cero y borra cualquier tarea o cambio que se haya
+    // creado en la sesión anterior. Es la vía simple porque no hay nada que
+    // pedirle a la app: para ella esto es abrir la página de nuevo.
+    const iframe = demo.querySelector("[data-demo-iframe]");
+    const boton = demo.querySelector("[data-demo-reiniciar]");
+    boton?.addEventListener("click", () => {
+      iframe.src = iframe.src;
+    });
+  })();
+</script>
+
+<style>
+  .demo {
+    --escala: 1;
+  }
+  .demo__marco {
+    overflow: hidden;
+    border: 1px solid var(--borde-fuerte);
+    border-radius: 8px;
+    background: var(--superficie);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.55);
+  }
+  .demo__barra {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 34px;
+    padding: 0 0.6rem 0 0.85rem;
+    border-bottom: 1px solid var(--borde);
+    font-size: 0.78rem;
+    color: var(--texto-tenue);
+  }
+  .demo__reiniciar {
+    margin-left: auto;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--borde-fuerte);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--texto-tenue);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .demo__reiniciar:hover {
+    background: var(--superficie-alta);
+    color: var(--texto);
+  }
+  .demo__puntos {
+    display: flex;
+    gap: 6px;
+  }
+  .demo__puntos i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--borde-fuerte);
+  }
+  .demo__lienzo {
+    position: relative;
+    height: calc(var(--alto) * var(--escala));
+    overflow: hidden;
+  }
+  .demo__lienzo iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--ancho);
+    height: var(--alto);
+    border: 0;
+    background: #f9f9f9;
+    transform: scale(var(--escala));
+    transform-origin: top left;
+  }
+</style>
