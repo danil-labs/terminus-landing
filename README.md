@@ -18,12 +18,18 @@ pnpm preview   # sirve el build para revisarlo
 ## Estructura
 
 ```
-src/pages/index.astro   La página entera (hero, secciones, cierre).
-src/styles/global.css   Tokens de marca y estilos. Los colores salen del
-                        sistema de diseño; aquí no se inventan.
-public/marca/           Logo e isotipo.
-public/fuentes/         Geist Sans y Geist Mono (variables).
-wrangler.jsonc          Configuración de despliegue a Cloudflare.
+src/pages/index.astro         La página entera: hero, «Cómo funciona», cierre.
+src/components/Maqueta.astro  La ventana de la app, tocable: barras, tareas,
+                              Configuración, apariencia y consumos. Sus
+                              rótulos y colores se copian de harness-app.
+src/components/MarcaAgente.astro  Las marcas de los agentes, copiadas de
+                              harness-app/src/ui/icons.tsx.
+src/styles/global.css         Tokens de marca y estilos de la página. Los
+                              colores salen del sistema de diseño; aquí no se
+                              inventan.
+public/marca/                 Logo e isotipo.
+public/fuentes/               Geist Sans y Geist Mono (variables).
+wrangler.jsonc                Configuración de despliegue a Cloudflare.
 ```
 
 ## Reglas visuales
@@ -33,8 +39,12 @@ wrangler.jsonc          Configuración de despliegue a Cloudflare.
 - Superficie sólida, borde hairline, sombra chica. **Sin glassmorphism, sin
   `backdrop-filter`, sin gradientes decorativos.** Radios 4/6/8.
 - Copy en español, tono de ingeniero. Sin relleno de venta.
-- Los datos no se inventan: la descarga y el comando `npx` deben coincidir con
-  las releases reales.
+- **Nada que la app no haga hoy.** Cada frase tiene que poder comprobarse en
+  `harness-app` — su `ARCHITECTURE.md` y sus catálogos de `src/locales/es/`. Lo
+  que es visión de producto no entra hasta que esté construido: una promesa que
+  la primera instalación desmiente cuesta más que no hacerla.
+- Los datos no se inventan: la descarga apunta a las releases reales y la
+  versión se resuelve al compilar.
 
 ## Despliegue
 

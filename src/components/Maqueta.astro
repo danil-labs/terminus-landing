@@ -1,0 +1,439 @@
+---
+import MarcaAgente from "./MarcaAgente.astro";
+
+/**
+ * La ventana de Terminus, en HTML y con lo mínimo para tocarla: abrir y cerrar
+ * las barras, cambiar de tarea, entrar a Configuración, cambiar la apariencia y
+ * ver los consumos.
+ *
+ * **Nada de aquí se inventa para la foto.** Los rótulos están copiados de los
+ * catálogos de `harness-app` (`src/locales/es/`: `shell`, `settings`, `usage`,
+ * `onboarding`) y los colores de sus dos temas (`src/styles/global.css`). Lo
+ * que no se pudo copiar —el nombre de las ventanas de consumo, que llega del
+ * backend— no se escribe: queda la barra y «resta».
+ *
+ * **Las tareas son de verdad.** Es Terminus trabajando sobre Danil: la de la
+ * landing es la tarea en la que se escribió esta página.
+ *
+ * Sin JavaScript se ve la primera tarea, entera y quieta.
+ */
+const PROVEEDORES = [
+  { id: "claude", nombre: "Claude Code", estado: "conectada" },
+  { id: "codex", nombre: "Codex", estado: "conectada" },
+  { id: "gemini", nombre: "Gemini / Antigravity", estado: "sin conectar" },
+  { id: "grok", nombre: "Grok", estado: "sin conectar" },
+  { id: "opencode", nombre: "OpenCode", estado: "sin conectar" },
+  { id: "local", nombre: "Modelos locales", estado: "No necesita cuenta" },
+] as const;
+const CONSUMOS = [
+  { id: "claude", nombre: "Claude Code", resta: 78 },
+  { id: "codex", nombre: "Codex", resta: 64 },
+] as const;
+---
+
+<figure class="app" data-maqueta data-theme="dark" aria-label="La ventana de Terminus. Se puede tocar.">
+  <div class="app__barra">
+    <img src="/marca/terminus-icono.png" alt="" width="14" height="14" />
+    <span>Terminus</span>
+    <span class="app__controles" aria-hidden="true"><i></i><i></i><i></i></span>
+  </div>
+
+  <div class="app__pestanas">
+    <button class="app__boton" type="button" data-accion="izq" aria-pressed="true" title="Ocultar el historial">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+    </button>
+    <div class="app__tabs" role="tablist">
+      <button type="button" class="app__tab" data-tarea="landing" aria-selected="true">Simplificar la landing</button>
+      <button type="button" class="app__tab" data-tarea="docs" aria-selected="false">Qué es Terminus hoy</button>
+    </div>
+    <div class="app__tabs app__tabs--panel" aria-hidden="true">
+      <span class="app__tab">Adjuntos</span>
+      <span class="app__tab" aria-selected="true">Artefactos</span>
+      <span class="app__tab">Código</span>
+    </div>
+    <button class="app__boton" type="button" data-accion="der" aria-pressed="true" title="Árbol de trabajo">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>
+    </button>
+  </div>
+
+  <div class="app__cuerpo">
+    <!-- Barra lateral: tareas agrupadas en proyectos, y abajo el espacio y
+         Configuración. -->
+    <aside class="app__izq">
+      <span class="app__nueva">
+        <svg viewBox="0 0 24 24"><path d="M12 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
+        Nueva tarea
+      </span>
+      <p class="app__rotulo">Proyectos</p>
+      <p class="app__proyecto">
+        <svg viewBox="0 0 24 24"><path d="M4 4h5l2 2h9v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /></svg>
+        terminus-landing
+      </p>
+      <button type="button" class="app__fila" data-tarea="landing" aria-current="true">Simplificar la landing</button>
+      <p class="app__proyecto">
+        <svg viewBox="0 0 24 24"><path d="M4 4h5l2 2h9v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /></svg>
+        danil-workspace
+      </p>
+      <button type="button" class="app__fila" data-tarea="docs">Qué es Terminus hoy</button>
+
+      <div class="app__pie-izq">
+        <span class="app__espacio">
+          <img src="/marca/terminus-icono.png" alt="" width="14" height="14" />
+          Danil
+        </span>
+        <button type="button" class="app__boton" data-accion="config" title="Configuración">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        </button>
+      </div>
+    </aside>
+
+    <div class="app__centro">
+      <!-- Tarea 1: la de esta página. -->
+      <section class="app__vista" data-vista="landing">
+        <div class="app__franja">
+          <strong>Simplificar la landing</strong>
+          <span>Memoria</span>
+          <span class="app__medidor"><span style="width: 19%"></span></span>
+          <span>38k / 200k</span>
+        </div>
+        <div class="app__hilo">
+          <p class="app__dicho">
+            Revisa la landing de terminus.danil.ai contra lo que hace la app hoy.
+            Quiero algo mucho más simple.
+          </p>
+          <div>
+            <p class="app__agente"><MarcaAgente id="claude" size={13} /> Claude Code</p>
+            <ul class="app__actos">
+              <li><span>Leyó 14 archivos</span> harness-app</li>
+              <li><span>Buscó 6 veces</span> onboarding</li>
+              <li><span>Escribió</span> propuesta-landing.html <em>+214</em></li>
+            </ul>
+            <p>
+              La página promete cosas que la app ya no hace y le dedica secciones
+              a detalle técnico. Te propongo una idea, tres pasos y la descarga,
+              con los textos del propio onboarding. Te dejé la propuesta para que
+              la veas.
+            </p>
+          </div>
+        </div>
+        <div class="app__compositor">
+          <p class="app__contexto">Contexto: <span>danil-workspace</span></p>
+          <div class="app__caja">
+            <span class="app__mas">+</span>
+            <span class="app__placeholder">Pregunta algo</span>
+            <span class="app__selector"><MarcaAgente id="claude" size={12} /> Claude Code ⌄</span>
+            <span class="app__enviar">↑</span>
+          </div>
+        </div>
+        <p class="app__consumo">
+          Claude <span class="app__medidor"><span style="width: 78%"></span></span> 78 % resta
+        </p>
+      </section>
+
+      <!-- Tarea 2: una pregunta sobre la documentación de Danil. -->
+      <section class="app__vista" data-vista="docs" hidden>
+        <div class="app__franja">
+          <strong>Qué es Terminus hoy</strong>
+          <span>Memoria</span>
+          <span class="app__medidor"><span style="width: 7%"></span></span>
+          <span>9k / 128k</span>
+        </div>
+        <div class="app__hilo">
+          <p class="app__dicho">¿Qué dice la documentación que es Terminus?</p>
+          <div>
+            <p class="app__agente"><MarcaAgente id="codex" size={13} /> Codex</p>
+            <ul class="app__actos">
+              <li><span>Leyó 3 archivos</span> danil-workspace/docs</li>
+            </ul>
+            <p>
+              Una app de escritorio para trabajar con agentes de terminal sobre el
+              material de una organización. Corre en tu computadora, con la
+              suscripción de cada persona, y no usa ningún servicio de Danil.
+            </p>
+          </div>
+        </div>
+        <div class="app__compositor">
+          <p class="app__contexto">Contexto: <span>danil-workspace</span></p>
+          <div class="app__caja">
+            <span class="app__mas">+</span>
+            <span class="app__placeholder">Pregunta algo</span>
+            <span class="app__selector"><MarcaAgente id="codex" size={12} /> Codex ⌄</span>
+            <span class="app__enviar">↑</span>
+          </div>
+        </div>
+        <p class="app__consumo">
+          Codex <span class="app__medidor"><span style="width: 64%"></span></span> 64 % resta
+        </p>
+      </section>
+
+      <!-- Configuración: tres de sus secciones, con los rótulos de la app. -->
+      <section class="app__vista app__config" data-vista="config" hidden>
+        <div class="app__config-cabeza">
+          <strong>Configuración</strong>
+          <button type="button" class="app__volver" data-accion="volver">Volver a la tarea</button>
+        </div>
+        <div class="app__config-cuerpo">
+          <nav class="app__config-nav" aria-label="Secciones de configuración">
+            <button type="button" data-seccion="general" aria-current="true">General</button>
+            <button type="button" data-seccion="proveedores">Proveedores de IA</button>
+            <button type="button" data-seccion="consumos">Consumos IA</button>
+          </nav>
+
+          <div class="app__seccion" data-de="general">
+            <p class="app__campo">Apariencia</p>
+            <div class="app__segmentos" role="radiogroup" aria-label="Apariencia">
+              <button type="button" data-tema="sistema" aria-checked="false" role="radio">Como el sistema</button>
+              <button type="button" data-tema="claro" aria-checked="false" role="radio">Claro</button>
+              <button type="button" data-tema="oscuro" aria-checked="true" role="radio">Oscuro</button>
+            </div>
+            <p class="app__campo">Contexto principal</p>
+            <p class="app__tarjeta">danil-workspace <span>al día</span></p>
+          </div>
+
+          <div class="app__seccion" data-de="proveedores" hidden>
+            <ul class="app__lista">
+              {PROVEEDORES.map((p) => (
+                <li class="app__tarjeta">
+                  <MarcaAgente id={p.id} size={15} />
+                  {p.nombre}
+                  <span class={p.estado === "conectada" ? "app__ok" : ""}>{p.estado}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="app__seccion" data-de="consumos" hidden>
+            <ul class="app__lista">
+              {CONSUMOS.map((c) => (
+                <li>
+                  <p class="app__campo">{c.nombre}</p>
+                  <div class="app__tarjeta app__tarjeta--consumo">
+                    <MarcaAgente id={c.id} size={15} />
+                    <span class="app__medidor app__medidor--ancho"><span style={`width: ${c.resta}%`}></span></span>
+                    <span>{c.resta} % resta</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Lo que salió de la tarea. -->
+    <aside class="app__der">
+      <p class="app__rotulo">Producido en esta tarea</p>
+      <p class="app__artefacto" data-de-tarea="landing"><em>propuesta-landing.html</em> <span>176 kB</span></p>
+      <p class="app__artefacto app__artefacto--vacio" data-de-tarea="docs" hidden>Todavía nada</p>
+      <span class="app__fantasma">Abrir carpeta de trabajo</span>
+    </aside>
+  </div>
+</figure>
+
+<script is:inline>
+  /*
+   * Todo lo que se mueve en la maqueta, con un solo oyente. Solo cambia
+   * atributos: el aspecto de cada estado vive en la hoja de estilo.
+   */
+  (() => {
+    const app = document.querySelector("[data-maqueta]");
+    if (!app) return;
+    const $$ = (s) => Array.from(app.querySelectorAll(s));
+    let tarea = "landing";
+
+    const ver = (vista) => {
+      for (const v of $$("[data-vista]")) v.hidden = v.dataset.vista !== vista;
+    };
+    const elegirTarea = (t) => {
+      tarea = t;
+      ver(t);
+      for (const b of $$(".app__tab[data-tarea]")) b.setAttribute("aria-selected", String(b.dataset.tarea === t));
+      for (const b of $$(".app__fila[data-tarea]")) b.toggleAttribute("aria-current", b.dataset.tarea === t);
+      for (const a of $$("[data-de-tarea]")) a.hidden = a.dataset.deTarea !== t;
+    };
+    const oscuro = matchMedia("(prefers-color-scheme: dark)");
+    const pintarTema = (tema) => {
+      const dark = tema === "oscuro" || (tema === "sistema" && oscuro.matches);
+      app.dataset.theme = dark ? "dark" : "light";
+      for (const b of $$("[data-tema]")) b.setAttribute("aria-checked", String(b.dataset.tema === tema));
+    };
+
+    app.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      const { accion, tarea: t, seccion, tema } = b.dataset;
+      if (accion === "izq" || accion === "der") {
+        const abierta = b.getAttribute("aria-pressed") !== "true";
+        b.setAttribute("aria-pressed", String(abierta));
+        app.classList.toggle(`app--sin-${accion}`, !abierta);
+      } else if (accion === "config") {
+        ver("config");
+      } else if (accion === "volver") {
+        elegirTarea(tarea);
+      } else if (t) {
+        elegirTarea(t);
+      } else if (seccion) {
+        for (const s of $$("[data-de]")) s.hidden = s.dataset.de !== seccion;
+        for (const n of $$("[data-seccion]")) n.toggleAttribute("aria-current", n.dataset.seccion === seccion);
+      } else if (tema) {
+        pintarTema(tema);
+      }
+    });
+  })();
+</script>
+
+<style>
+  /* Los dos temas de la app, copiados de `harness-app/src/styles/global.css`.
+     La maqueta los lleva dentro para que cambiar de apariencia la repinte a
+     ella y no a la página. */
+  .app {
+    --a-bg: #f9f9f9;
+    --a-surface: #ffffff;
+    --a-muted: #f3f4f8;
+    --a-border: rgb(10 13 35 / 0.1);
+    --a-text: #0a0d23;
+    --a-text-2: #696b7f;
+    --a-primary: #6539f5;
+    --a-primary-text: #ffffff;
+    --a-ok: #166534;
+    color-scheme: light;
+  }
+  .app[data-theme="dark"] {
+    --a-bg: #0a0c12;
+    --a-surface: #1c2130;
+    --a-muted: #141822;
+    --a-border: rgb(255 255 255 / 0.1);
+    --a-text: #f3f4f8;
+    --a-text-2: #9aa1b8;
+    --a-primary: #f4eb7b;
+    --a-primary-text: #0a0d23;
+    --a-ok: #4ade80;
+    color-scheme: dark;
+  }
+
+  .app {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--a-border);
+    border-radius: 8px;
+    background: var(--a-bg);
+    color: var(--a-text);
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.55);
+  }
+  .app svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  /* Las marcas son rellenos, no trazos — menos la de «Modelos locales», que no
+     es de ningún dueño y sí es un glifo dibujado a línea. */
+  .app :global(.marca-agente:not([data-glifo])) { stroke: none; }
+  /* Sin `padding` aquí: Astro le pega su atributo también al principio del
+     selector, así que este reinicio le ganaba a la regla de cada pieza y las
+     pestañas salían pegadas. El relleno lo pone quien lo necesita. */
+  .app button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  .app button:focus-visible { outline: 2px solid var(--a-primary); outline-offset: 1px; border-radius: 4px; }
+  .app p, .app ul { margin: 0; }
+  .app ul { padding: 0; list-style: none; }
+
+  .app__barra { display: flex; align-items: center; gap: 0.45rem; height: 32px; padding: 0 0.75rem; background: var(--a-muted); border-bottom: 1px solid var(--a-border); color: var(--a-text-2); font-size: 12px; }
+  .app__controles { margin-left: auto; display: flex; gap: 6px; }
+  .app__controles i { width: 10px; height: 10px; border-radius: 50%; background: var(--a-border); }
+
+  .app__pestanas { display: flex; align-items: center; gap: 0.5rem; height: 38px; padding: 0 0.5rem; border-bottom: 1px solid var(--a-border); }
+  .app__boton { display: grid; padding: 0; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--a-text-2); }
+  .app__boton:hover { background: var(--a-muted); color: var(--a-text); }
+  .app__boton[aria-pressed="false"] { opacity: 0.55; }
+  .app__tabs { display: flex; gap: 2px; min-width: 0; flex: 1; }
+  .app__tabs--panel { flex: none; }
+  .app__tab { padding: 0.3rem 0.7rem; border-radius: 6px; color: var(--a-text-2); white-space: nowrap; }
+  .app__tab[aria-selected="true"] { background: var(--a-surface); color: var(--a-text); box-shadow: 0 0 0 1px var(--a-border); }
+
+  .app__cuerpo { display: grid; grid-template-columns: 210px minmax(0, 1fr) 220px; height: 470px; }
+  .app--sin-izq .app__cuerpo { grid-template-columns: 0 minmax(0, 1fr) 220px; }
+  .app--sin-der .app__cuerpo { grid-template-columns: 210px minmax(0, 1fr) 0; }
+  .app--sin-izq.app--sin-der .app__cuerpo { grid-template-columns: 0 minmax(0, 1fr) 0; }
+  .app--sin-izq .app__izq, .app--sin-der .app__der { visibility: hidden; }
+
+  .app__izq, .app__der { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; padding: 0.75rem 0.6rem; background: var(--a-muted); }
+  .app__izq { border-right: 1px solid var(--a-border); }
+  .app__der { border-left: 1px solid var(--a-border); }
+  .app__nueva { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: 6px; background: var(--a-surface); box-shadow: 0 0 0 1px var(--a-border); margin-bottom: 0.4rem; }
+  .app__rotulo { margin: 0.6rem 0.5rem 0.25rem; font-size: 11px; color: var(--a-text-2); }
+  .app__proyecto { display: flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.5rem; white-space: nowrap; }
+  .app__fila { display: block; width: 100%; padding: 0.3rem 0.5rem 0.3rem 1.6rem; border-radius: 6px; text-align: left; color: var(--a-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app__fila:hover { background: var(--a-surface); }
+  .app__fila[aria-current] { background: var(--a-surface); color: var(--a-text); box-shadow: 0 0 0 1px var(--a-border); }
+  .app__pie-izq { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid var(--a-border); }
+  .app__espacio { display: flex; align-items: center; gap: 0.45rem; padding-left: 0.4rem; }
+
+  .app__centro { min-width: 0; background: var(--a-surface); }
+  .app__vista { display: flex; flex-direction: column; height: 100%; }
+  .app__vista[hidden] { display: none; }
+  .app__franja { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 1rem; border-bottom: 1px solid var(--a-border); color: var(--a-text-2); font-size: 12px; white-space: nowrap; }
+  .app__franja strong { color: var(--a-text); font-weight: 600; margin-right: auto; overflow: hidden; text-overflow: ellipsis; }
+  .app__medidor { display: inline-block; width: 56px; height: 5px; border-radius: 9999px; background: var(--a-muted); box-shadow: inset 0 0 0 1px var(--a-border); overflow: hidden; }
+  .app__medidor span { display: block; height: 100%; background: var(--a-primary); }
+  .app__medidor--ancho { flex: 1; width: auto; }
+
+  .app__hilo { flex: 1; display: flex; flex-direction: column; gap: 1rem; padding: 1rem 1.25rem; overflow: auto; }
+  .app__dicho { align-self: flex-end; max-width: 78%; padding: 0.6rem 0.8rem; border-radius: 8px; background: var(--a-muted); }
+  .app__agente { display: flex; align-items: center; gap: 0.4rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .app__actos { display: grid; gap: 0.2rem; margin: 0 0 0.6rem; padding-left: 0.7rem; border-left: 2px solid var(--a-border); color: var(--a-text-2); font-family: "Geist Mono", ui-monospace, monospace; font-size: 11.5px; }
+  .app__actos span { color: var(--a-text); font-family: "Geist", sans-serif; font-size: 12.5px; margin-right: 0.3rem; }
+  .app__actos em { font-style: normal; color: var(--a-ok); }
+
+  .app__compositor { margin: 0 1rem; padding: 0.55rem; border: 1px solid var(--a-border); border-radius: 8px; background: var(--a-bg); }
+  .app__contexto { color: var(--a-text-2); font-size: 11.5px; margin-bottom: 0.4rem; }
+  .app__contexto span { padding: 0.05rem 0.4rem; border-radius: 4px; background: var(--a-muted); color: var(--a-text); }
+  .app__caja { display: flex; align-items: center; gap: 0.5rem; }
+  .app__mas, .app__enviar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; box-shadow: 0 0 0 1px var(--a-border); }
+  .app__enviar { background: var(--a-primary); color: var(--a-primary-text); box-shadow: none; }
+  .app__placeholder { flex: 1; color: var(--a-text-2); }
+  .app__selector { display: flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.5rem; border-radius: 6px; color: var(--a-text-2); }
+  .app__consumo { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem 0.7rem; color: var(--a-text-2); font-size: 11.5px; }
+
+  .app__config-cabeza { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 1rem; border-bottom: 1px solid var(--a-border); }
+  .app__volver { padding: 0.25rem 0.6rem; border-radius: 6px; box-shadow: 0 0 0 1px var(--a-border); color: var(--a-text-2); }
+  .app__config-cuerpo { flex: 1; display: grid; grid-template-columns: 150px 1fr; min-height: 0; }
+  .app__config-nav { display: flex; flex-direction: column; gap: 2px; padding: 0.75rem 0.5rem; border-right: 1px solid var(--a-border); }
+  .app__config-nav button { padding: 0.35rem 0.6rem; border-radius: 6px; text-align: left; color: var(--a-text-2); }
+  .app__config-nav button[aria-current] { background: var(--a-muted); color: var(--a-text); }
+  .app__seccion { padding: 1rem 1.25rem; overflow: auto; }
+  .app__seccion[hidden] { display: none; }
+  .app__campo { font-size: 12px; font-weight: 600; color: var(--a-text-2); margin: 0.9rem 0 0.4rem; }
+  .app__campo:first-child { margin-top: 0; }
+  .app__segmentos { display: inline-flex; padding: 3px; border-radius: 8px; background: var(--a-muted); box-shadow: inset 0 0 0 1px var(--a-border); }
+  .app__segmentos button { padding: 0.3rem 0.8rem; border-radius: 6px; color: var(--a-text-2); }
+  .app__segmentos button[aria-checked="true"] { background: var(--a-surface); color: var(--a-text); box-shadow: 0 0 0 1px var(--a-border); }
+  .app__lista { display: grid; gap: 0.4rem; }
+  .app__tarjeta { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.75rem; border-radius: 8px; border: 1px solid var(--a-border); background: var(--a-bg); }
+  .app__tarjeta > span:last-child { margin-left: auto; color: var(--a-text-2); font-size: 12px; }
+  .app__tarjeta--consumo > span:last-child { margin-left: 0; white-space: nowrap; }
+  .app__ok { color: var(--a-ok); }
+
+  .app__artefacto { display: flex; justify-content: space-between; gap: 0.4rem; padding: 0.4rem 0.5rem; border-radius: 6px; background: var(--a-surface); box-shadow: 0 0 0 1px var(--a-border); font-family: "Geist Mono", ui-monospace, monospace; font-size: 11px; white-space: nowrap; }
+  /* El nombre cede primero: el peso es un dato corto y cortarlo no dice nada. */
+  .app__artefacto em { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .app__artefacto span { flex: none; color: var(--a-text-2); }
+  .app__artefacto--vacio { font-family: inherit; color: var(--a-text-2); background: none; box-shadow: none; }
+  .app__artefacto[hidden] { display: none; }
+  .app__fantasma { margin-top: 0.6rem; padding: 0.35rem 0.5rem; border-radius: 6px; box-shadow: 0 0 0 1px var(--a-border); color: var(--a-text-2); text-align: center; }
+
+  /* En pantallas angostas las barras laterales no caben al lado del chat: se
+     quedan fuera y la maqueta enseña la conversación. */
+  /* Las columnas se cuentan aquí de nuevo, y no se dejan en cero: lo que se
+     oculta con `display: none` deja de ocupar su columna, así que el chat se
+     recorría a la primera —la de ancho cero— y desaparecía. */
+  @media (max-width: 860px) {
+    .app__cuerpo { grid-template-columns: 190px minmax(0, 1fr); }
+    .app--sin-izq .app__cuerpo { grid-template-columns: 0 minmax(0, 1fr); }
+    .app__der, .app__tabs--panel, [data-accion="der"] { display: none; }
+  }
+  @media (max-width: 620px) {
+    .app__cuerpo, .app--sin-izq .app__cuerpo, .app--sin-der .app__cuerpo { grid-template-columns: minmax(0, 1fr); }
+    .app__izq, [data-accion="izq"] { display: none; }
+    .app__tab:not([aria-selected="true"]) { display: none; }
+    .app__config-cuerpo { grid-template-columns: 1fr; }
+    .app__config-nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--a-border); }
+  }
+</style>
