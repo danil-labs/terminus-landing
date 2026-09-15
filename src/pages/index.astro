@@ -163,15 +163,20 @@ const GLIFO_MAC =
             }
           </ul>
         </div>
+
+        <div class="converge" aria-hidden="true">
+          <span class="converge__linea"></span>
+          <span class="converge__punto"></span>
+        </div>
       </section>
 
-      <div class="envoltura">
+      <div class="envoltura reveal">
         <Demo />
       </div>
 
       <section class="envoltura como">
         <h2>Cómo funciona</h2>
-        <ol class="pasos">
+        <ol class="pasos reveal">
           <li class="paso">
             <span class="paso__num mono">01</span>
             <h3>Instalas y se prepara sola</h3>
@@ -204,7 +209,7 @@ const GLIFO_MAC =
         </ol>
       </section>
 
-      <section class="envoltura cierre">
+      <section class="envoltura cierre reveal">
         <h2>Pruébalo con una tarea de verdad.</h2>
         <div class="descargas">
           <a class="boton boton--accion" href={DESCARGA_WINDOWS}>Descargar para Windows</a>
@@ -249,6 +254,34 @@ const GLIFO_MAC =
             }, 1500);
           } catch {}
         });
+      })();
+
+      (() => {
+        const nav = document.querySelector(".nav");
+        if (!nav) return;
+        const marcar = () => nav.classList.toggle("nav--elevada", window.scrollY > 8);
+        marcar();
+        addEventListener("scroll", marcar, { passive: true });
+      })();
+
+      (() => {
+        const elementos = document.querySelectorAll(".reveal");
+        if (!elementos.length) return;
+        if (!("IntersectionObserver" in window)) {
+          elementos.forEach((el) => el.classList.add("is-visible"));
+          return;
+        }
+        const obs = new IntersectionObserver(
+          (entradas) => {
+            for (const entrada of entradas) {
+              if (!entrada.isIntersecting) continue;
+              entrada.target.classList.add("is-visible");
+              obs.unobserve(entrada.target);
+            }
+          },
+          { threshold: 0.2, rootMargin: "0px 0px -8% 0px" },
+        );
+        elementos.forEach((el) => obs.observe(el));
       })();
     </script>
   </body>
