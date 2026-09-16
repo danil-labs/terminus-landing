@@ -28,16 +28,24 @@
     { id: "codex", label: "Codex", limits: true, inferencia: "con_cuenta" },
     { id: "grok", label: "Grok", limits: false, inferencia: "con_cuenta" },
     { id: "antigravity", label: "Antigravity", limits: false, inferencia: "con_cuenta" },
-    { id: "opencode-zen", label: "OpenCode", limits: false, inferencia: "con_cuenta" },
+    // «Sin pedir nada», como en la tabla real: por eso da dos superficies,
+    // «OpenCode» y «Modelos Free» (`surfaces.rs`, `declaradas`).
+    { id: "opencode-zen", label: "OpenCode", limits: false, inferencia: "sin_pedir_nada" },
     { id: "opencode-local", label: "Locales", limits: false, inferencia: "en_la_maquina", sin_cuenta: true },
   ].map((a) => ({ available: true, driver: true, sin_cuenta: false, api_key: null, ...a }));
   const etiqueta = (id) => AGENTES.find((a) => a.id === id)?.label ?? "El agente";
 
-  // Conectadas: las dos de la tarea. El resto se ve en Configuración con su
-  // botón de conectar, como en una instalación nueva.
+  // Las cuentas conectadas en la demo: todos los agentes que piden una. Solo
+  // Claude y Codex traen ventanas de consumo.
   const CONECTADAS = {
     claude: [["últimas 5 horas", 22, 2.2], ["esta semana", 41, 76]],
     codex: [["últimas 5 horas", 36, 3.5], ["esta semana", 18, 101]],
+    // Conectadas también, para que el selector de una tarea nueva ofrezca a
+    // todos. Sin ventanas de consumo: la app no las lee para estos
+    // (`limits: false`).
+    grok: [],
+    antigravity: [],
+    "opencode-zen": [],
   };
   // El catálogo que la app arma sin preguntarle nada al CLI
   // (`runtime/models.rs`): los alias de Claude con su nombre y su nota, y la
@@ -56,6 +64,18 @@
     ].map(([id, label, note]) => ({ id, label, note, gratis: null, efforts: CLAUDE_ESFUERZOS, default_effort: null })),
     codex: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"]
       .map((id) => ({ id, label: id, note: null, gratis: null, efforts: CODEX_ESFUERZOS, default_effort: "medium" })),
+    // La lista de Grok la da `grok models` al correr, y en el código no hay
+    // ninguna: este id es un ejemplo. Los esfuerzos sí son los suyos
+    // (`GROK_EFFORTS`, `high` por omisión).
+    grok: [{ id: "grok-code-fast-1", label: "grok-code-fast-1", note: null, gratis: null, efforts: ["low", "medium", "high"], default_effort: "high" }],
+    // Antigravity lleva el esfuerzo dentro del id y no ofrece selector aparte.
+    antigravity: ["gemini-3.6-flash-high", "gemini-3.6-flash-medium"]
+      .map((id) => ({ id, label: id, note: null, gratis: null, efforts: [], default_effort: null })),
+    // Solo el gratuito que usan las pruebas de la app: cae en «OpenCode Free»
+    // (`esDe`: el catálogo `gratuitos` se queda con `gratis: true`).
+    "opencode-zen": [{ id: "opencode/hy3-free", label: "opencode/hy3-free", note: null, gratis: true, efforts: [], default_effort: null }],
+    // El catálogo local real (`CATALOG` en `models.rs`), servido por llama.cpp.
+    "opencode-local": [{ id: "llamacpp/qwen3.5-4b", label: "Qwen3.5 4B", note: "en esta computadora, con llama.cpp", gratis: null, efforts: [], default_effort: null }],
   };
   // Los tres modos reales de `Modo::CICLO` (`runtime/agents/types.rs`), con
   // sus ids y frases exactas. «Acepta ediciones» es el que trae la app de
@@ -101,9 +121,9 @@
       { id: "landing", title: "Simplificar la landing", agent: "claude", model: "opus", updated_at: hace(4) },
       // Un worktree sin rama: el agente todavía no hizo el primer commit que
       // le da nombre (`ARCHITECTURE.md` § 1 — «la app no crea ninguna rama»).
-      { id: "sin-rama", title: "Explorar otra idea de hero", agent: "antigravity", model: null, updated_at: hace(210) },
-      { id: "pr-abierto", title: "Agregar aviso de SmartScreen", agent: "grok", model: null, updated_at: hace(1400) },
-      { id: "pr-mergeado", title: "Corregir el aria-label del árbol", agent: "opencode-zen", model: null, updated_at: hace(4200) },
+      { id: "sin-rama", title: "Explorar otra idea de hero", agent: "antigravity", model: "gemini-3.6-flash-medium", updated_at: hace(210) },
+      { id: "pr-abierto", title: "Agregar aviso de SmartScreen", agent: "grok", model: "grok-code-fast-1", updated_at: hace(1400) },
+      { id: "pr-mergeado", title: "Corregir el aria-label del árbol", agent: "opencode-zen", model: "opencode/hy3-free", updated_at: hace(4200) },
     ],
     "danil-workspace": [
       { id: "docs", title: "Qué es Terminus hoy", agent: "codex", model: "gpt-5.6-sol", updated_at: hace(90) },
@@ -116,54 +136,217 @@
       { id: "campaña-q4", title: "Resumen de la campaña de Q4", agent: "codex", model: "gpt-5.6-sol", updated_at: hace(50) },
     ],
   };
+  // **Las tareas de ejemplo cuentan un trabajo entero**, no una respuesta
+  // suelta: varios turnos, las herramientas del agente, una pregunta con
+  // opciones, una salida de terminal y —en las de código— el bloque de
+  // cambios que la app pinta cuando un turno trae `code` (un par de commits,
+  // `lib/model.ts`). Ese diff lo contesta `tree_diff` desde aquí, con la
+  // clave `antes..después`. Los fragmentos son de la landing real: el hero de
+  // antes y el de ahora, la tabla de permisos que salió de la página.
+  const CAMBIOS_GUARDADOS = {
+    "e5a0c2b..4293fc5": [
+      ["src/pages/index.astro",
+        "      <section class=\"envoltura hero\">\n        <p class=\"diff\">\n          <span class=\"mono\">inteligencia</span>\n          <span class=\"diff__tachado mono\">artificial</span>\n        </p>\n        <p class=\"pastilla\">Aplicación de escritorio · Windows y macOS</p>\n        <h1>El agente hace el trabajo. Tú apruebas lo que sale.</h1>\n        <p class=\"hero__bajada\">\n          Agentes de terminal corriendo dentro de una app, sobre una carpeta\n          de documentos o un repositorio, con tu propia suscripción.\n        </p>\n",
+        "      <section class=\"envoltura hero\">\n        <h1>Tus agentes de IA, en una sola app.</h1>\n        <p class=\"bajada\">\n          Terminus es una app de escritorio para trabajar con agentes de IA sobre\n          tus carpetas y repositorios, con tus propias cuentas.\n        </p>\n"],
+      ["README.md",
+        "## Despliegue\n\nSe publica en Cloudflare con `wrangler deploy` (dominio `terminus.danil.ai`).\n",
+        "## Permisos de la GitHub App\n\n| Permiso | Nivel | Para qué |\n|---|---|---|\n| contents | escritura | Leer el repo y crear ramas |\n| pull_requests | escritura | Abrir la propuesta de cambio |\n| issues | escritura | Comentar y abrir issues |\n| metadata | lectura | Lo que GitHub añade a todas |\n\n## Despliegue\n\nSe publica en Cloudflare con `wrangler deploy` (dominio `terminus.danil.ai`).\n"],
+    ],
+    "9a0c3e2..a1c02ef": [
+      ["src/styles/global.css",
+        ".hero {\n  padding: clamp(4.5rem, 11vw, 8rem) 0 3.5rem;\n  text-align: center;\n}\n",
+        ".hero {\n  display: grid;\n  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);\n  align-items: center;\n  gap: 3rem;\n  padding: clamp(3rem, 8vw, 6rem) 0 3rem;\n  text-align: left;\n}\n.hero .demo {\n  grid-column: 1;\n  grid-row: 1 / span 4;\n}\n"],
+    ],
+    "5d21c88..7f0d914": [
+      ["src/pages/index.astro",
+        "        <p class=\"datos\">\n          Windows 10 u 11 y macOS\n        </p>\n",
+        "        <p class=\"datos\">\n          Windows 10 u 11 y macOS\n        </p>\n        <p class=\"aviso\">\n          Firmada. Windows puede avisar la primera vez:\n          <span class=\"mono\">Más información → Ejecutar de todos modos</span>.\n        </p>\n"],
+      ["src/styles/global.css",
+        ".datos {\n  margin: 1.1rem 0 0;\n  font-size: 0.8rem;\n  color: var(--texto-tenue);\n}\n",
+        ".datos {\n  margin: 1.1rem 0 0;\n  font-size: 0.8rem;\n  color: var(--texto-tenue);\n}\n.aviso {\n  margin: 0.4rem 0 0;\n  font-size: 0.78rem;\n  color: var(--texto-tenue);\n}\n"],
+    ],
+    "2f9e6a1..3bb27a0": [
+      ["src/components/Demo.astro",
+        "      <iframe\n        src=\"/demo/\"\n        width={ANCHO}\n        height={ALTO}\n        loading=\"lazy\"></iframe>\n",
+        "      <iframe\n        src=\"/demo/\"\n        title=\"Terminus: la app real, con respuestas simuladas\"\n        width={ANCHO}\n        height={ALTO}\n        loading=\"lazy\"></iframe>\n"],
+    ],
+  };
+
   const TURNOS = {
     landing: [
-      { role: "user", id: "u1", at: hace(12), text: "Revisa la landing de terminus.danil.ai contra lo que hace la app hoy. Quiero algo mucho más simple." },
+      { role: "user", id: "u1", at: hace(52), text: "Revisa la landing de terminus.danil.ai contra lo que hace la app hoy. Quiero algo mucho más simple." },
       {
-        role: "agent", id: "a1", at: hace(4), duration_ms: 468_000, model: "opus",
+        role: "agent", id: "a1", at: hace(47), duration_ms: 212_000, model: "opus",
         tools: [
           { name: "Read", target: "src/pages/index.astro", ok: true },
           { name: "Read", target: "src/styles/global.css", ok: true },
-          { name: "Grep", target: "onboarding", ok: true },
-          { name: "Write", target: "src/pages/index.astro", ok: true },
+          { name: "Grep", target: "gobernanza", ok: true },
+          { name: "Read", target: "README.md", ok: true },
         ],
-        text: "La página prometía cosas que la app ya no hace y le dedicaba secciones a detalle técnico.\n\nLa dejé en **una idea, tres pasos y la descarga**, con los textos del propio onboarding:\n\n1. Instalas y se prepara sola.\n2. Conectas tus cuentas de IA.\n3. Le das una tarea sobre tu carpeta.",
+        text: "Encontré tres problemas:\n\n1. **Promete lo que la app ya no hace**: «tú apruebas lo que sale» y el material «solo lectura».\n2. **Once secciones**, varias de detalle técnico: permisos, idiomas, servidores MCP, firma de código.\n3. **Tres mensajes distintos** entre la landing, el README y la app.\n\nPropongo un hero, tres pasos tomados del onboarding y la descarga. Antes de tocar nada, una duda:",
+        questions: [{
+          id: "permisos", question: "¿Qué hago con la tabla de permisos de la GitHub App?", multiple: false, free_text: false,
+          options: [
+            { value: "quitar", label: "Quitarla" },
+            { value: "readme", label: "Moverla al README", detail: "Sigue documentada, pero fuera de la página" },
+            { value: "dejar", label: "Dejarla como está" },
+          ],
+        }],
+      },
+      // **La respuesta va en su propio turno, no en el que preguntó.** Un
+      // mensaje con `answers` no se pinta (`bloques` lo salta): solo alimenta
+      // el registro de preguntas del turno al que contesta, por su `turn`.
+      // Con las dos cosas juntas, el turno que preguntaba desaparecía entero.
+      {
+        role: "user", id: "u1b", at: hace(45), text: "",
+        answers: [{ turn: "a1", question: "permisos", question_text: "¿Qué hago con la tabla de permisos de la GitHub App?", chosen: ["readme"], text: "Moverla al README", source: "persona", when: hace(45) }],
+      },
+      {
+        role: "agent", id: "a2", at: hace(38), duration_ms: 256_000, model: "opus",
+        tools: [
+          { name: "Edit", target: "src/pages/index.astro", ok: true },
+          { name: "Edit", target: "README.md", ok: true },
+        ],
+        text: "Hecho. El hero dice una sola cosa y los permisos quedaron en el README:\n\n```astro\n<h1>Tus agentes de IA, en una sola app.</h1>\n```\n\nQuité el tachado de «artificial» y la pastilla de plataformas: la descarga ya dice para qué sistemas es.",
+        code: [{ tree: "work", before: "e5a0c2b", after: "4293fc5" }],
+      },
+      {
+        role: "user", id: "u2", at: hace(36), text: "npm run build",
+        shell: { cwd: `${RAIZ}/terminus-landing`, output: "> terminus-web@0.0.0 build\n> astro build\n\n generating static routes\n▶ src/pages/index.astro\n  └─ /index.html (+402ms)\n✓ Completed in 406ms.\n1 page(s) built in 731ms\nComplete!", exit_code: 0, duration_ms: 1_900, truncated: false },
+      },
+      { role: "user", id: "u3", at: hace(35), text: "Compila. ¿Algo más que se te haya quedado?" },
+      {
+        role: "agent", id: "a3", at: hace(33), duration_ms: 64_000, model: "opus",
+        tools: [{ name: "Grep", target: "SmartScreen", ok: true }],
+        text: "Una cosa: el aviso de SmartScreen ya no está junto al botón de Windows. Lo dejé fuera a propósito —la página quedó en una idea, tres pasos y la descarga—, pero si lo quieres de vuelta es un renglón.",
       },
     ],
     "sin-rama": [
-      { role: "user", id: "u1", at: hace(215), text: "Antes de tocar nada, prueba una versión del hero con el mockup a la izquierda." },
-      { role: "agent", id: "a1", at: hace(210), duration_ms: 52_000, model: null, tools: [{ name: "Write", target: "src/pages/index.astro", ok: true }], text: "Probé esa versión en esta copia. No convenció: el título perdía peso. Puedes seguir aquí o descartarla." },
+      { role: "user", id: "u1", at: hace(230), text: "Antes de tocar nada, prueba una versión del hero con la demo a la izquierda." },
+      {
+        role: "agent", id: "a1", at: hace(222), duration_ms: 95_000, model: "gemini-3.6-flash-medium",
+        tools: [
+          { name: "Read", target: "src/styles/global.css", ok: true },
+          { name: "Edit", target: "src/styles/global.css", ok: true },
+        ],
+        text: "Lo probé en esta copia, sin rama todavía: el hero pasa a dos columnas, con la demo a la izquierda y el texto a la derecha.",
+        code: [{ tree: "work", before: "9a0c3e2", after: "a1c02ef" }],
+      },
+      { role: "user", id: "u2", at: hace(215), text: "Mmm, el título pierde fuerza. Déjalo así por ahora." },
+      { role: "agent", id: "a2", at: hace(210), duration_ms: 8_000, model: "gemini-3.6-flash-medium", text: "Queda en esta copia y tu carpeta no se tocó. Si la retomas, sigo desde aquí; si no, la puedes finalizar." },
     ],
     "pr-abierto": [
-      { role: "user", id: "u1", at: hace(1410), text: "Falta el aviso de SmartScreen junto al botón de Windows." },
-      { role: "agent", id: "a1", at: hace(1400), duration_ms: 88_000, model: null, tools: [{ name: "Edit", target: "src/pages/index.astro", ok: true }], text: "Agregado, con el mismo texto que la sección de Estado. Dejé la rama lista y el pull request abierto." },
+      { role: "user", id: "u1", at: hace(1430), text: "Falta el aviso de SmartScreen junto al botón de Windows." },
+      {
+        role: "agent", id: "a1", at: hace(1418), duration_ms: 118_000, model: "grok-code-fast-1",
+        tools: [
+          { name: "Read", target: "src/pages/index.astro", ok: true },
+          { name: "Edit", target: "src/pages/index.astro", ok: true },
+          { name: "Edit", target: "src/styles/global.css", ok: true },
+        ],
+        text: "Agregado debajo de la versión, con el mismo texto que usa el README del instalador.",
+        code: [{ tree: "work", before: "5d21c88", after: "7f0d914" }],
+      },
+      { role: "user", id: "u2", at: hace(1410), text: "Súbelo y abre el PR." },
+      {
+        role: "agent", id: "a2", at: hace(1400), duration_ms: 41_000, model: "grok-code-fast-1",
+        tools: [
+          { name: "Bash", target: "git switch -c fix/smartscreen-aviso", ok: true },
+          { name: "Bash", target: "git push -u origin fix/smartscreen-aviso", ok: true },
+          { name: "Bash", target: "gh pr create --fill", ok: true },
+        ],
+        text: "Listo: la rama es `fix/smartscreen-aviso` y el pull request **#21** quedó abierto, con las pruebas pasando. Falta la revisión.",
+      },
     ],
     "pr-mergeado": [
-      { role: "user", id: "u1", at: hace(4210), text: "El árbol de trabajo no dice qué es cuando lo lee un lector de pantalla." },
-      { role: "agent", id: "a1", at: hace(4200), duration_ms: 61_000, model: null, tools: [{ name: "Edit", target: "src/components/Demo.astro", ok: true }], text: "Le puse `aria-label` al iframe. Ya se fusionó a `main`." },
+      { role: "user", id: "u1", at: hace(4240), text: "El iframe de la demo no dice qué es cuando lo lee un lector de pantalla." },
+      {
+        role: "agent", id: "a1", at: hace(4232), duration_ms: 73_000, model: "opencode/hy3-free",
+        tools: [
+          { name: "Read", target: "src/components/Demo.astro", ok: true },
+          { name: "Edit", target: "src/components/Demo.astro", ok: true },
+        ],
+        text: "Le faltaba `title`, que es lo que anuncia un lector de pantalla al entrar a un iframe:\n\n```astro\n<iframe\n  src=\"/demo/\"\n  title=\"Terminus: la app real, con respuestas simuladas\"\n```",
+        code: [{ tree: "work", before: "2f9e6a1", after: "3bb27a0" }],
+      },
+      { role: "user", id: "u2", at: hace(4225), text: "Abre el PR." },
+      {
+        role: "agent", id: "a2", at: hace(4220), duration_ms: 36_000, model: "opencode/hy3-free",
+        tools: [
+          { name: "Bash", target: "git push -u origin fix/aria-arbol", ok: true },
+          { name: "Bash", target: "gh pr create --fill", ok: true },
+        ],
+        text: "Abierto como **#14**.",
+      },
+      { role: "user", id: "u3", at: hace(4205), text: "Ya lo aprobaron y se fusionó." },
+      { role: "agent", id: "a3", at: hace(4200), duration_ms: 5_000, model: "opencode/hy3-free", text: "Entonces esta tarea ya cumplió. Con el cohete la finalizas: se archiva y se borran el worktree y la rama local; el pull request se queda registrado." },
     ],
     docs: [
-      { role: "user", id: "u1", at: hace(95), text: "¿Qué dice la documentación que es Terminus?" },
+      { role: "user", id: "u1", at: hace(100), text: "¿Qué dice la documentación que es Terminus?" },
       {
-        role: "agent", id: "a1", at: hace(90), duration_ms: 41_000, model: "gpt-5.6-sol",
-        tools: [{ name: "Read", target: "docs/ARCHITECTURE.md", ok: true }],
-        text: "Una app de escritorio para trabajar con agentes de terminal sobre el material de una organización. Corre en tu computadora, con la suscripción de cada persona, y no usa ningún servicio de Danil.",
+        role: "agent", id: "a1", at: hace(96), duration_ms: 41_000, model: "gpt-5.6-sol",
+        tools: [
+          { name: "Read", target: "docs/ARCHITECTURE.md", ok: true },
+          { name: "Read", target: "README.md", ok: true },
+        ],
+        text: "Una app de escritorio para trabajar con agentes de terminal sobre el material de una organización:\n\n- Corre en la computadora de quien la usa, **con la suscripción de cada persona**.\n- No usa ningún servicio de Danil: ni servidores, ni base de datos.\n- Lo que sale de la máquina es poco y está listado: los CLIs contra su proveedor, GitHub o Bitbucket para clonar, los servidores MCP que conectes y el updater.",
+      },
+      { role: "user", id: "u2", at: hace(93), text: "¿Y qué NO es?" },
+      {
+        role: "agent", id: "a2", at: hace(90), duration_ms: 22_000, model: "gpt-5.6-sol",
+        tools: [{ name: "Grep", target: "appv2", ok: true }],
+        text: "No es `appv2` ni una versión de ella: esa corre en la nube con los servicios de Danil. Tampoco tiene todavía una sección de agentes locales —la documentación la marca como **visión**, no como algo construido.",
       },
     ],
     "borrador-cliente": [
-      { role: "user", id: "u1", at: hace(35), text: "Escribe la política de reembolsos para el plan Starter." },
-      { role: "agent", id: "a1", at: hace(30), duration_ms: 71_000, model: "sonnet", tools: [{ name: "Write", target: "politica-reembolsos.md", ok: true }], text: "Aquí tienes un primer borrador. Todavía no lo guardé en tu carpeta —revísalo y dime si falta algo." },
+      { role: "user", id: "u1", at: hace(36), text: "Escribe la política de reembolsos para el plan Starter." },
+      {
+        role: "agent", id: "a1", at: hace(31), duration_ms: 71_000, model: "sonnet",
+        tools: [
+          { name: "Read", target: "planes.md", ok: true },
+          { name: "Write", target: "politica-reembolsos.md", ok: true },
+        ],
+        text: "Aquí tienes un primer borrador. Todavía **no está guardado** en tu carpeta: revísalo y, si te sirve, lo guardas desde la tarea.",
+        artifacts: [{ rel: "politica-reembolsos.md", bytes: 612, revision: false }],
+      },
     ],
     "guardado-cliente": [
-      { role: "user", id: "u1", at: hace(2610), text: "Junta las preguntas que más hace soporte sobre facturación." },
-      { role: "agent", id: "a1", at: hace(2600), duration_ms: 54_000, model: "gpt-5.6-sol", tools: [{ name: "Write", target: "preguntas-frecuentes.md", ok: true }], text: "Listo, y ya lo guardé en tu carpeta de documentos." },
+      { role: "user", id: "u1", at: hace(2615), text: "Junta las preguntas que más hace soporte sobre facturación." },
+      {
+        role: "agent", id: "a1", at: hace(2608), duration_ms: 54_000, model: "gpt-5.6-sol",
+        tools: [
+          { name: "Read", target: "tickets-agosto.csv", ok: true },
+          { name: "Write", target: "preguntas-frecuentes.md", ok: true },
+        ],
+        text: "Salieron cinco que concentran casi todos los tickets. Te las dejé con su respuesta corta.",
+        artifacts: [{ rel: "preguntas-frecuentes.md", bytes: 540, revision: false }],
+      },
+      { role: "user", id: "u2", at: hace(2604), text: "Perfecto, guárdalo." },
+      { role: "agent", id: "a2", at: hace(2600), duration_ms: 3_000, model: "gpt-5.6-sol", text: "Guardado en tu carpeta de documentos." },
     ],
     "campaña-q4": [
-      { role: "user", id: "u1", at: hace(55), text: "Resume qué archivos tiene la carpeta de la campaña de Q4." },
-      { role: "agent", id: "a1", at: hace(50), duration_ms: 33_000, model: "gpt-5.6-sol", tools: [{ name: "Read", target: "briefing-q4.docx", ok: true }], text: "Es una demo: la respuesta está simulada. En Terminus esto lee de verdad los archivos de tu Drive, sin copiarlos a ningún servidor de Danil." },
+      { role: "user", id: "u1", at: hace(56), text: "Resume qué hay en la carpeta de la campaña de Q4." },
+      {
+        role: "agent", id: "a1", at: hace(50), duration_ms: 33_000, model: "gpt-5.6-sol",
+        tools: [
+          { name: "Read", target: "briefing-q4.docx", ok: true },
+          { name: "Read", target: "presupuesto-q4.xlsx", ok: true },
+          { name: "Read", target: "calendario.md", ok: true },
+        ],
+        text: "Esto es una demo: la respuesta está simulada. En Terminus, el agente lee de verdad los archivos de tu Drive, sin copiarlos a ningún servidor de Danil.\n\n| Archivo | Qué es |\n|---|---|\n| briefing-q4.docx | Objetivos y mensajes de la campaña |\n| presupuesto-q4.xlsx | Presupuesto por canal |\n| calendario.md | Fechas de lanzamiento |",
+      },
     ],
   };
-  const ARTEFACTOS = {}; // sesión → { rel: texto }
+  // Lo que produjeron las tareas guardadas, para que la tarjeta «Produjo…»
+  // abra un archivo con contenido.
+  const ARTEFACTOS = {
+    "borrador-cliente": {
+      "politica-reembolsos.md": "# Política de reembolsos — plan Starter\n\n**Borrador.**\n\n- Puedes pedir el reembolso completo en los primeros **14 días** desde el primer cobro.\n- Después de ese plazo no hay reembolsos parciales: el plan sigue activo hasta el fin del periodo pagado.\n- Si cambias a un plan más barato, la diferencia queda como saldo a favor.\n\n## Cómo pedirlo\n\nEscribe a soporte con el correo de la cuenta. Respondemos en dos días hábiles.\n",
+    },
+    "guardado-cliente": {
+      "preguntas-frecuentes.md": "# Preguntas frecuentes de facturación\n\n1. **¿Cuándo se me cobra?** El mismo día de cada mes en que te suscribiste.\n2. **¿Puedo cambiar de plan?** Sí, en cualquier momento; el cambio se prorratea.\n3. **¿Dónde está mi factura?** En Configuración → Facturación.\n4. **¿Qué pasa si falla un pago?** Reintentamos tres días y te avisamos por correo.\n5. **¿Puedo pagar anual?** Sí, con dos meses de descuento.\n",
+    },
+  };
 
   const filas = (p) => (p ? SESIONES[p] ?? [] : Object.values(SESIONES).flat());
   const sesion = (id) => Object.values(SESIONES).flat().find((s) => s.id === id);
@@ -174,6 +357,8 @@
     return {
       id: s.id, title: s.title, agent: s.agent, model: s.model, refs: [], project: p,
       created_at: turnos[0]?.at ?? s.updated_at, updated_at: s.updated_at, turns: turnos.length, parent: null, esperando: false,
+      // Con esto la fila cae sola en «Archivadas» (`taskTree(sessions, true)`).
+      archived: s.archived === true,
       last_message: ultimo ? ultimo.text.replace(/[*`#]/g, "").split("\n")[0].slice(0, 90) : "",
     };
   };
@@ -262,7 +447,12 @@
   // carpeta de documentos nace en borrador. Sin esto, las tareas creadas en la
   // demo se quedaban sin árbol de trabajo justo cuando el agente decía que los
   // cambios estaban ahí.
+  // Finalizar (el cohete) es archivar y además quitar el worktree y la rama
+  // local (`projects.sessions.finish_description`). El pull request no se
+  // borra: su registro se queda con la tarea.
+  const FINALIZADAS = new Set();
   const gitDe = (s) => {
+    if (FINALIZADAS.has(s)) return { kind: "none", kn: null, branch: null, alias: null, head: null, pull: GIT[s]?.pull ?? null };
     if (GIT[s]) return GIT[s];
     const p = proyectoDe(s);
     const carpeta = PROYECTOS.find((x) => x.id === p)?.kind === "folder";
@@ -270,7 +460,7 @@
     return { kind: carpeta ? "kn" : "none", kn: carpeta ? "draft" : null, branch: null, alias: null, head: null, pull: null };
   };
 
-  const arbolDe = (s) => proyectoDe(s) !== CON_ARBOL ? [] : [{
+  const arbolDe = (s) => proyectoDe(s) !== CON_ARBOL || FINALIZADAS.has(s) ? [] : [{
     key: "work", name: CON_ARBOL, path: `${RAIZ}/${CON_ARBOL}`, origin: "declarada", kind: "git",
     cloud: null, source: null, remote: "https://github.com/danil-labs/terminus-landing",
     branch: gitDe(s).branch ?? "", missing: false, dirty_before: 0, changed: cambios(s).length, base_drift: null,
@@ -435,6 +625,16 @@ const PREGUNTAS = [
       return { id: s.id, agent: s.agent, sources: [], model: s.model, effort: null, permission_mode: null, turns: TURNOS[s.id] ?? [] };
     },
     send_message: enviar,
+    finish_task: (a) => {
+      const s = sesion(a?.id ?? a?.session);
+      if (s) { s.archived = true; FINALIZADAS.add(s.id); }
+      return null;
+    },
+    set_task_archived: (a) => {
+      const s = sesion(a?.id ?? a?.session);
+      if (s) s.archived = a?.archived !== false;
+      return null;
+    },
     stop_turn: (a) => {
       const v = VIVAS.get(a?.session);
       if (v) { v.relojes.forEach(clearTimeout); VIVAS.delete(a.session); emitir("chat", { workspace: WS, session: a.session, kind: "done", text: "", meta: null, ok: null, request_id: null }); }
@@ -444,11 +644,12 @@ const PREGUNTAS = [
     list_live_turns: () => [...VIVAS.entries()].map(([session, v]) => ({ session, workspace: WS, project: proyectoDe(session), started_at: v.desde })),
     session_folder: (a) => `/Users/demo/.terminus/tareas/${a?.session ?? a?.id ?? "tarea"}`,
     list_models: (a) => ({ agent: a?.agent ?? "claude", models: MODELOS[a?.agent ?? "claude"] ?? [], fallback: false }),
-    list_surfaces: AGENTES.filter((a) => a.id !== "opencode-local").map((a) => ({
-      id: a.id, agent: a.id, label: a.label, catalogo: "todo",
-      usable: Boolean(CONECTADAS[a.id]), marca: CONECTADAS[a.id] ? null : "sin conectar",
-      porque: CONECTADAS[a.id] ? null : "Falta conectar la cuenta.",
-    })),
+    // Las mismas superficies que declara la app (`surfaces.rs`): una por
+    // agente, y dos para el que no pide cuenta.
+    list_surfaces: AGENTES.flatMap((a) => (a.inferencia === "sin_pedir_nada"
+      ? [[a.id, a.label, "de_pago"], [`${a.id}-gratuitos`, "Modelos Free", "gratuitos"]]
+      : [[a.id, a.label, "todo"]]
+    ).map(([id, label, catalogo]) => ({ id, agent: a.id, label, catalogo, usable: true, marca: null, porque: null }))),
     // Control de Fuentes: GitHub conectado a la organización, Bitbucket con su
     // formulario. Los textos son claves del catálogo de la app
     // (`providers.json`), que es lo que manda `delivery/providers/*.rs`.
@@ -496,7 +697,11 @@ const PREGUNTAS = [
       windows: (CONECTADAS[a?.agent] ?? []).map(([label, used_pct, horas]) => ({ label, used_pct, resets_at: ahora + horas * 3_600_000 })),
     }),
     account_status: (a) => ({ id: a?.id, authenticated: true, detail: "" }),
-    list_local_models: [],
+    // Los dos pesos del catálogo real: uno descargado, el otro por bajar.
+    list_local_models: [
+      { id: "qwen3.5-4b", label: "Qwen3.5 4B", quant: "Q4_K_M", bytes: 2_740_937_888, state: "installed", on_disk: 2_740_937_888, verified: true, serving: false },
+      { id: "qwen3.5-2b", label: "Qwen3.5 2B", quant: "Q4_K_M", bytes: 1_280_835_840, state: "missing", on_disk: 0, verified: true, serving: false },
+    ],
     consent_text: [[], 0],
     list_known_mcp: [
       { id: "figma", grupo: "figma", clave: "figma", name: "Figma", via: { clave: "mcp.known.figma.via" }, requiere: { clave: "mcp.known.figma.requires" }, despues: { clave: "mcp.known.figma.after" }, conectado: false },
@@ -529,8 +734,8 @@ const PREGUNTAS = [
       const id = a?.session ?? a?.id;
       const g = gitDe(id);
       return {
-        history: { archived: false, events: [], recovery: null }, branch: g.branch, alias: g.alias,
-        path: `${RAIZ}/${proyectoDe(id) ?? CON_ARBOL}`, available: true, owned: true, restorable: false, recreatable: false, incomplete: false,
+        history: { archived: sesion(id)?.archived === true, events: [], recovery: null }, branch: g.branch, alias: g.alias,
+        path: `${RAIZ}/${proyectoDe(id) ?? CON_ARBOL}`, available: !FINALIZADAS.has(id), owned: true, restorable: false, recreatable: false, incomplete: false,
       };
     },
     list_storage: { tareas: [], compartido: [], sueltos: [], recuperable: 0, bytes: 734_003_200, medido_en: ahora, aviso: null },
@@ -547,7 +752,7 @@ const PREGUNTAS = [
       return {
         target: { kind: "task", projectId: p, sessionId: s.id }, title: s.title,
         projectName: PROYECTOS.find((x) => x.id === p)?.name ?? p,
-        alias: g.alias ?? "", branch: g.branch ?? "", available: true, archived: false, updatedAt: s.updated_at,
+        alias: g.alias ?? "", branch: g.branch ?? "", available: !FINALIZADAS.has(s.id), archived: s.archived === true, updatedAt: s.updated_at,
       };
     })),
     // Los comandos «/», para probar el otro disparador. Nombres inventados
@@ -582,7 +787,17 @@ const PREGUNTAS = [
     tree_git_status: (a) => cambios(a?.session).map((c) => (c.status === "A" ? { path: c.path, index: "?", worktree: "?" } : { path: c.path, index: " ", worktree: "M" })),
     tree_summary: (a) => ({ base: "main", files: cambios(a?.session), added: suma(a?.session, "added"), removed: suma(a?.session, "removed") }),
     tree_changes: (a) => ({ base: "main", files: cambios(a?.session), added: suma(a?.session, "added"), removed: suma(a?.session, "removed"), patch: parcheDe(a?.session), truncated: false, warnings: [] }),
-    tree_diff: (a) => ({ patch: parcheDe(a?.session, a?.path ?? a?.rel), retired: false }),
+    // El bloque de cambios de un turno pide su par de commits: si es de un
+    // turno guardado, el diff sale de `CAMBIOS_GUARDADOS`; si no, de lo que
+    // la tarea cambió en esta visita.
+    tree_diff: (a) => {
+      const guardado = CAMBIOS_GUARDADOS[`${a?.before}..${a?.after}`];
+      if (!guardado) return { patch: parcheDe(a?.session, a?.path ?? a?.rel), retired: false };
+      return {
+        patch: guardado.filter(([ruta]) => !a.path || ruta === a.path).map(([ruta, antes, despues]) => parche(ruta, antes, despues)).join(""),
+        retired: false,
+      };
+    },
     // La pestaña «Cambios» de un archivo abierto.
     tree_patch: (a) => parcheDe(a?.session, a?.path),
     // Guardar desde el editor del archivo: queda como un cambio más del árbol.
@@ -662,9 +877,9 @@ const PREGUNTAS = [
    * escribir y enviar un mensaje, empezar una tarea nueva —global o dentro de
    * una carpeta—, elegir el proyecto de una tarea nueva, el razonamiento y
    * los permisos del turno, y Configuración en modo lectura (sus secciones y
-   * la Apariencia). Todo lo demás —cuentas, proveedores, instalar, borrar, el
-   * selector de agente o modelo, crear un proyecto— no está en la lista, y
-   * por eso no hace nada.
+   * la Apariencia), elegir agente y modelo, y finalizar, archivar o
+   * desarchivar una tarea. Todo lo demás —cuentas, proveedores, instalar,
+   * borrar, crear un proyecto— no está en la lista, y por eso no hace nada.
    */
   const AVISO = "En la demo esto no está disponible. Descarga Terminus para probarlo.";
   let toast = null;
@@ -733,6 +948,13 @@ const PREGUNTAS = [
     // El botón grande de la portada de un proyecto no lleva `aria-label`,
     // solo el texto — misma llamada que el del riel (`nuevaSesion`).
     if (control.tagName === "BUTTON" && control.textContent.trim() === "Nueva tarea") return true;
+    // Archivar y desarchivar, del menú de la tarea o de su historial: el
+    // simulador los guarda, y la tarea cambia de lista.
+    if (["Archivar tarea", "Desarchivar tarea"].includes((etiqueta || control.textContent).trim())) return true;
+    // La tarjeta de lo que produjo un turno: abrirla es leer un archivo. Su
+    // texto viene de varios `span` pegados —«Produjoinforme.md12 kB»—, así
+    // que aquí no puede ir un espacio detrás.
+    if (control.textContent.trim().startsWith("Produjo")) return true;
 
     if (control.getAttribute("role") === "tab") return true; // cambiar de vista, nunca de dato
 
@@ -741,8 +963,10 @@ const PREGUNTAS = [
     }
     // Las opciones de permisos: mismo trato que la Apariencia, por el mismo
     // motivo — elegir aquí no llama a ningún proveedor.
+    // Y las del selector de modelos: cualquier agente corre el mismo turno
+    // guionado.
     if (control.getAttribute("role") === "option") {
-      return control.closest('[role="listbox"]')?.getAttribute("aria-label") === "Permisos";
+      return ["Permisos", "Modelos"].includes(control.closest('[role="listbox"]')?.getAttribute("aria-label"));
     }
     // El razonamiento es un `<select>` nativo: el navegador pinta sus
     // opciones fuera del documento, así que ni siquiera llegan a este clic.
