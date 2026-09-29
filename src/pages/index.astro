@@ -307,7 +307,7 @@ const DESCARGAS = [
           try {
             const { architecture } = await datos.getHighEntropyValues(["architecture"]);
             if (/x86/i.test(architecture ?? "")) plataforma = "mac-intel";
-          } catch { /* The browser may withhold architecture; both DMGs are universal. */ }
+          } catch { /* El navegador puede callar la arquitectura; los dos DMG son universales. */ }
         }
       }
       if (!plataforma) return;
