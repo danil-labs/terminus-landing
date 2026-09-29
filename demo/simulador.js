@@ -1152,6 +1152,11 @@ const PREGUNTAS = [
     // guionados y se bloquean.
     if (control.closest("[data-folder-row]")) return true;
 
+    // El encabezado «Tareas» de una carpeta: la lupa abre el buscador y el
+    // botón de personas agrupa o desagrupa por agente. Las dos son vistas, no
+    // datos: el simulador contesta la búsqueda igual y la lista se rearma.
+    if (control.closest("[data-tasks-header]")) return true;
+
     // La fila de un encargado: hablar con él abre un borrador con su
     // criterio —misma llamada que «Nueva tarea», con el agente ya puesto—, y
     // su menú enseña el perfil. «Nuevo agente» sí crea, y se bloquea.
