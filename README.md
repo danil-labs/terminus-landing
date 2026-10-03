@@ -23,8 +23,9 @@ src/components/Demo.astro     El marco de la demo: un iframe a /demo/, pintado
                               a ancho de escritorio y escalado al que haya.
 src/components/MarcaAgente.astro  Las marcas de los agentes, copiadas de
                               harness-app/src/ui/icons.tsx.
-demo/simulador.js             El backend simulado de la demo: proyectos,
-                              tareas, cuentas y el turno guionado del agente.
+demo/simulador.js             El backend simulado de la demo: espacios,
+                              proyectos, encargados, tareas, cuentas y el
+                              turno guionado del agente.
 scripts/demo.mjs              Compila la demo desde una checkout de harness-app.
 public/demo/                  La demo compilada. Entra al repo: el CI no puede
                               leer harness-app, que es privado.
@@ -54,25 +55,29 @@ wrangler.jsonc                Configuración de despliegue a Cloudflare.
 
 La ventana que se ve en la página **es la app de verdad**: el front de
 `harness-app` compilado tal cual, con el backend de Tauri simulado por
-`demo/simulador.js` (la misma técnica que `scripts/mount.mjs` de allá). Se
-tocan las barras, las tareas, Configuración (incluida Radiant), la apariencia,
-los consumos y el árbol del proyecto; al escribirle al agente corre un turno
-guionado que crea un componente, edita la página y compila. **El agente de la
-demo dice que su respuesta es simulada.**
+`demo/simulador.js` (la misma técnica que `scripts/mount.mjs` de allá). Abre en
+una tarea, como quien vuelve a la app: se cambia de espacio y de carpeta, se
+abren tareas y agentes, se toca el árbol del trabajo y Configuración (incluida
+Radiant), la apariencia, las fuentes y los consumos; al escribirle al agente
+corre un turno guionado que lee archivos, crea un componente, edita la página y
+compila. **El agente de la demo dice que su respuesta es simulada.**
 
 **Habla español o inglés.** La página la pide con `/demo/?lang=es` o
 `/demo/?lang=en`; sin parámetro usa la lengua del navegador. La interfaz sale
 del catálogo real de la app (`src/locales/<lengua>`); los datos de ejemplo
-(tareas, conversaciones, archivos) se traducen en el simulador con
+(tareas, agentes, conversaciones, archivos) se traducen en el simulador con
 `tr(es, en)`. Los bloques de código no se traducen: citan archivos reales.
 
-**Lo que no está guionado no se rompe: se bloquea.** Un clic o un atajo solo
-pasa si el guardia del simulador lo reconoce; si no, sale «En la demo esto no
-está disponible». El guardia reconoce los botones por su **clave del
-catálogo** (`rotulo("shell.sidebar.hide")`), no por su texto, así que vale en
-las dos lenguas. Al compilar, `scripts/demo.mjs` busca esas claves en los
-catálogos de la app y deja sus textos en `datos.js`; **si la app quita o
-renombra una clave, la compilación falla** y dice cuál.
+**Lo que no tiene guion no hace nada: se bloquea.** La demo no simula conectar
+cuentas, instalar, borrar ni crear; en vez de adivinar, `simulador.js` cierra la
+puerta por defecto —un clic o una tecla solo accionan lo que está en su lista
+de permitidos— y avisa «En la demo esto no está disponible». Así, un botón
+nuevo de `harness-app` queda bloqueado por diseño, no por descuido. El guardia
+reconoce los botones por su **clave del catálogo**
+(`rotulo("shell.sidebar.hide")`), no por su texto, así que vale en las dos
+lenguas. Al compilar, `scripts/demo.mjs` busca esas claves en los catálogos de
+la app y deja sus textos en `datos.js`; **si la app quita o renombra una clave,
+la compilación falla** y dice cuál.
 
 Para regenerarla con otra versión de la app:
 

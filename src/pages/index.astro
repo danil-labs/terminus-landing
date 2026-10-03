@@ -19,11 +19,13 @@ const RELEASES = "https://github.com/danil-labs/terminus/releases/latest";
 /**
  * **Nombres estables, sin versión dentro.** `latest` resuelve la release, pero
  * el nombre del archivo tiene que existir tal cual en ella: cada release publica
- * una copia con estos nombres para que los botones no caduquen. El `.dmg` es
- * universal, Apple Silicon e Intel.
+ * una copia con estos nombres para que los botones no caduquen. Los dos `.dmg`
+ * contienen el mismo instalador universal; los nombres aclaran cada botón.
  */
 const DESCARGA_WINDOWS = `${RELEASES}/download/Terminus-Windows-Setup.exe`;
-const DESCARGA_MAC = `${RELEASES}/download/Terminus-macOS.dmg`;
+const DESCARGA_MAC_ARM = `${RELEASES}/download/Terminus-macOS.dmg`;
+const DESCARGA_MAC_INTEL = `${RELEASES}/download/Terminus-macOS-Intel.dmg`;
+const DESCARGA_LINUX = `${RELEASES}/download/Terminus-Linux-x86_64.AppImage`;
 const VERSIONES = "https://github.com/danil-labs/terminus/releases";
 const ICONO = "/marca/terminus-icono.png";
 /**
@@ -73,6 +75,14 @@ const GLIFO_WINDOWS =
   "M3 5.6 10.4 4.5v7.1H3zM11.6 4.3 21 3v8.6h-9.4zM3 12.5h7.4v7.1L3 18.5zM11.6 12.5H21V21l-9.4-1.3z";
 const GLIFO_MAC =
   "M16.4 12.7c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.6.8-3.3.8s-1.7-.8-2.9-.8c-1.5 0-2.9.9-3.6 2.2-1.6 2.7-.4 6.7 1.1 8.9.7 1.1 1.6 2.3 2.7 2.2 1.1 0 1.5-.7 2.8-.7s1.6.7 2.8.7 1.9-1.1 2.6-2.1c.8-1.2 1.2-2.4 1.2-2.4s-2.2-.9-2.4-3.6zM14.3 6.1c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 1.9-.5 2.5-1.2z";
+const GLIFO_LINUX =
+  "M12 2c-2.8 0-4.6 2.2-4.6 5.6 0 1.3.3 2.5.8 3.6L5 17.3l2.8 1.2 1.7-2.8c.8.5 1.6.8 2.5.8s1.7-.3 2.5-.8l1.7 2.8 2.8-1.2-3.2-6.1c.5-1.1.8-2.3.8-3.6C16.6 4.2 14.8 2 12 2zm-1.5 4.5a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zm3 0a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM9 19l-2 3h10l-2-3z";
+const DESCARGAS = [
+  { plataforma: "mac-arm", nombre: "macOS Apple Silicon", url: DESCARGA_MAC_ARM, glifo: GLIFO_MAC },
+  { plataforma: "mac-intel", nombre: "macOS Intel", url: DESCARGA_MAC_INTEL, glifo: GLIFO_MAC },
+  { plataforma: "windows", nombre: "Windows", url: DESCARGA_WINDOWS, glifo: GLIFO_WINDOWS },
+  { plataforma: "linux", nombre: "Linux (AppImage)", url: DESCARGA_LINUX, glifo: GLIFO_LINUX },
+] as const;
 ---
 
 <!doctype html>
@@ -118,15 +128,13 @@ const GLIFO_MAC =
           tus carpetas y repositorios, con tus propias cuentas.
         </p>
 
-        <div class="descargas">
-          <a class="boton boton--accion" href={DESCARGA_WINDOWS}>
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={GLIFO_WINDOWS} /></svg>
-            Descargar para Windows
-          </a>
-          <a class="boton boton--linea" href={DESCARGA_MAC}>
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={GLIFO_MAC} /></svg>
-            Descargar para macOS
-          </a>
+        <div class="descargas" aria-label="Descargas por sistema operativo">
+          {DESCARGAS.map((d) => (
+            <a class="boton boton--linea" data-plataforma={d.plataforma} href={d.url}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={d.glifo} /></svg>
+              Descargar para {d.nombre}
+            </a>
+          ))}
         </div>
         <p class="datos">
           {
@@ -137,7 +145,7 @@ const GLIFO_MAC =
               </>
             )
           }
-          Windows 10 u 11 y macOS
+          Windows 10 u 11, macOS y Linux x86_64
         </p>
         <!-- El camino de quien ya tiene Node: un renglón, no un botón —compite
              menos con la descarga, que es el camino de un clic. -->
@@ -212,9 +220,10 @@ const GLIFO_MAC =
 
       <section class="envoltura cierre reveal">
         <h2>Pruébalo con una tarea de verdad.</h2>
-        <div class="descargas">
-          <a class="boton boton--accion" href={DESCARGA_WINDOWS}>Descargar para Windows</a>
-          <a class="boton boton--linea" href={DESCARGA_MAC}>Descargar para macOS</a>
+        <div class="descargas" aria-label="Descargas por sistema operativo">
+          {DESCARGAS.map((d) => (
+            <a class="boton boton--linea" data-plataforma={d.plataforma} href={d.url}>Descargar para {d.nombre}</a>
+          ))}
         </div>
       </section>
     </main>
@@ -285,5 +294,29 @@ const GLIFO_MAC =
         elementos.forEach((el) => obs.observe(el));
       })();
     </script>
+  <script>
+    async function destacarPlataforma() {
+      const ua = navigator.userAgent;
+      let plataforma: string | undefined;
+      if (/Windows/i.test(ua)) plataforma = "windows";
+      else if (/Linux/i.test(ua) && !/Android/i.test(ua)) plataforma = "linux";
+      else if (/Macintosh|Mac OS X/i.test(ua)) {
+        plataforma = "mac-arm";
+        const datos = (navigator as Navigator & { userAgentData?: { getHighEntropyValues: (hints: string[]) => Promise<{ architecture?: string }> } }).userAgentData;
+        if (datos) {
+          try {
+            const { architecture } = await datos.getHighEntropyValues(["architecture"]);
+            if (/x86/i.test(architecture ?? "")) plataforma = "mac-intel";
+          } catch { /* El navegador puede callar la arquitectura; los dos DMG son universales. */ }
+        }
+      }
+      if (!plataforma) return;
+      document.querySelectorAll<HTMLAnchorElement>(`.descargas [data-plataforma="${plataforma}"]`).forEach((boton) => {
+        boton.classList.remove("boton--linea");
+        boton.classList.add("boton--accion");
+      });
+    }
+    void destacarPlataforma();
+  </script>
   </body>
 </html>
