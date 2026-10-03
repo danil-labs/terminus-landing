@@ -13,6 +13,9 @@
  * - **El agente dice que es una demo.** Al escribirle, corre un turno guionado
  *   —lee, crea un componente, edita la página, compila— y lo primero que
  *   contesta es que la respuesta está simulada.
+ * - **Habla español o inglés.** `/demo/?lang=es` o `?lang=en` (si no, la
+ *   lengua del navegador). La interfaz es el catálogo real de la app; los
+ *   datos de ejemplo se traducen aquí con `tr(es, en)`.
  */
 (() => {
   const D = window.__DEMO__ || { comandos: {}, archivos: {}, version: "" };
@@ -20,6 +23,17 @@
   const ahora = Date.now();
   const hace = (min) => ahora - min * 60_000;
   const RAIZ = "/Users/demo/Proyectos";
+
+  /* ------------------------------------------------------------- lengua */
+
+  // **La demo habla la lengua de la página que la tiene.** La página lo pide
+  // con `/demo/?lang=es` o `?lang=en`; sin eso, la del navegador. La
+  // interfaz sale del catálogo real de la app (`src/locales/<lengua>`); aquí
+  // solo se traducen los datos de ejemplo. Los bloques de código no se
+  // traducen: citan archivos reales de la landing.
+  const pedida = new URLSearchParams(location.search).get("lang");
+  const LENGUA = ["es", "en"].includes(pedida) ? pedida : /^es\b/i.test(navigator.language ?? "") ? "es" : "en";
+  const tr = (es, en) => (LENGUA === "en" ? en : es);
 
   /* ------------------------------------------------------------ agentes */
 
@@ -33,13 +47,13 @@
     { id: "opencode-zen", label: "OpenCode", limits: false, inferencia: "sin_pedir_nada" },
     { id: "opencode-local", label: "Locales", limits: false, inferencia: "en_la_maquina", sin_cuenta: true },
   ].map((a) => ({ available: true, driver: true, sin_cuenta: false, api_key: null, ...a }));
-  const etiqueta = (id) => AGENTES.find((a) => a.id === id)?.label ?? "El agente";
+  const etiqueta = (id) => AGENTES.find((a) => a.id === id)?.label ?? tr("El agente", "The agent");
 
   // Las cuentas conectadas en la demo: todos los agentes que piden una. Solo
   // Claude y Codex traen ventanas de consumo.
   const CONECTADAS = {
-    claude: [["últimas 5 horas", 22, 2.2], ["esta semana", 41, 76]],
-    codex: [["últimas 5 horas", 36, 3.5], ["esta semana", 18, 101]],
+    claude: [[tr("últimas 5 horas", "last 5 hours"), 22, 2.2], [tr("esta semana", "this week"), 41, 76]],
+    codex: [[tr("últimas 5 horas", "last 5 hours"), 36, 3.5], [tr("esta semana", "this week"), 18, 101]],
     // Conectadas también, para que el selector de una tarea nueva ofrezca a
     // todos. Sin ventanas de consumo: la app no las lee para estos
     // (`limits: false`).
@@ -57,10 +71,10 @@
   const CODEX_ESFUERZOS = ["low", "medium", "high", "xhigh"];
   const MODELOS = {
     claude: [
-      ["sonnet", "Claude Sonnet 5", "equilibrio entre capacidad y velocidad"],
-      ["opus", "Claude Opus 5", "el más capaz"],
-      ["haiku", "Claude Haiku 4.5", "el más rápido"],
-      ["fable", "Claude Fable 5.1", "el más nuevo de la familia"],
+      ["sonnet", "Claude Sonnet 5", tr("equilibrio entre capacidad y velocidad", "balance of capability and speed")],
+      ["opus", "Claude Opus 5", tr("el más capaz", "the most capable")],
+      ["haiku", "Claude Haiku 4.5", tr("el más rápido", "the fastest")],
+      ["fable", "Claude Fable 5.1", tr("el más nuevo de la familia", "the newest in the family")],
     ].map(([id, label, note]) => ({ id, label, note, gratis: null, efforts: CLAUDE_ESFUERZOS, default_effort: null })),
     codex: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"]
       .map((id) => ({ id, label: id, note: null, gratis: null, efforts: CODEX_ESFUERZOS, default_effort: "medium" })),
@@ -75,7 +89,7 @@
     // (`esDe`: el catálogo `gratuitos` se queda con `gratis: true`).
     "opencode-zen": [{ id: "opencode/hy3-free", label: "opencode/hy3-free", note: null, gratis: true, efforts: [], default_effort: null }],
     // El catálogo local real (`CATALOG` en `models.rs`), servido por llama.cpp.
-    "opencode-local": [{ id: "llamacpp/qwen3.5-4b", label: "Qwen3.5 4B", note: "en esta computadora, con llama.cpp", gratis: null, efforts: [], default_effort: null }],
+    "opencode-local": [{ id: "llamacpp/qwen3.5-4b", label: "Qwen3.5 4B", note: tr("en esta computadora, con llama.cpp", "on this computer, with llama.cpp"), gratis: null, efforts: [], default_effort: null }],
   };
   // Los tres modos reales de `Modo::CICLO` (`runtime/agents/types.rs`), con
   // sus ids y frases exactas. «Acepta ediciones» es el que trae la app de
@@ -93,7 +107,7 @@
     // carpeta»: ese aviso es del workspace («Contexto principal» en
     // Configuración → General), no de cada proyecto, y solo aparece cuando de
     // verdad falta (`app/App.tsx`, `SelectorDeProyecto`).
-    id: WS, name: "Danil", context_root: `${RAIZ}/danil-workspace`, lengua: "es", lengua_de_salida: null,
+    id: WS, name: "Danil", context_root: `${RAIZ}/danil-workspace`, lengua: LENGUA, lengua_de_salida: null,
     worktrees_root: null, provider: null, remote: null, memoria: { tipo: "local" },
     created_at: hace(60 * 24 * 30), sessions: 2,
   };
@@ -109,31 +123,31 @@
     proyecto("danil-workspace", "danil-workspace", "git"),
     // Carpeta de documentos, sin git: donde viven los estados «borrador» y
     // «guardado» (`GitStatus.kn`, ver `taskGit.ts`).
-    proyecto("documentos-clientes", "Documentos de clientes", "folder"),
+    proyecto("documentos-clientes", tr("Documentos de clientes", "Client documents"), "folder"),
     // Una carpeta en la nube: mismo tipo «folder», con su proveedor. El icono
     // de nube lo decide `WorkdirIcon` a partir de este campo.
-    proyecto("marketing-drive", "Campañas (Drive)", "folder", "google_drive"),
+    proyecto("marketing-drive", tr("Campañas (Drive)", "Campaigns (Drive)"), "folder", "google_drive"),
   ];
   const CON_ARBOL = "terminus-landing";
 
   const SESIONES = {
     "terminus-landing": [
-      { id: "landing", title: "Simplificar la landing", agent: "claude", model: "opus", updated_at: hace(4) },
+      { id: "landing", title: tr("Simplificar la landing", "Simplify the landing page"), agent: "claude", model: "opus", updated_at: hace(4) },
       // Un worktree sin rama: el agente todavía no hizo el primer commit que
       // le da nombre (`ARCHITECTURE.md` § 1 — «la app no crea ninguna rama»).
-      { id: "sin-rama", title: "Explorar otra idea de hero", agent: "antigravity", model: "gemini-3.6-flash-medium", updated_at: hace(210) },
-      { id: "pr-abierto", title: "Agregar aviso de SmartScreen", agent: "grok", model: "grok-code-fast-1", updated_at: hace(1400) },
-      { id: "pr-mergeado", title: "Corregir el aria-label del árbol", agent: "opencode-zen", model: "opencode/hy3-free", updated_at: hace(4200) },
+      { id: "sin-rama", title: tr("Explorar otra idea de hero", "Try another hero idea"), agent: "antigravity", model: "gemini-3.6-flash-medium", updated_at: hace(210) },
+      { id: "pr-abierto", title: tr("Agregar aviso de SmartScreen", "Add the SmartScreen notice"), agent: "grok", model: "grok-code-fast-1", updated_at: hace(1400) },
+      { id: "pr-mergeado", title: tr("Corregir el aria-label del árbol", "Fix the tree aria-label"), agent: "opencode-zen", model: "opencode/hy3-free", updated_at: hace(4200) },
     ],
     "danil-workspace": [
-      { id: "docs", title: "Qué es Terminus hoy", agent: "codex", model: "gpt-5.6-sol", updated_at: hace(90) },
+      { id: "docs", title: tr("Qué es Terminus hoy", "What Terminus is today"), agent: "codex", model: "gpt-5.6-sol", updated_at: hace(90) },
     ],
     "documentos-clientes": [
-      { id: "borrador-cliente", title: "Política de reembolsos", agent: "claude", model: "sonnet", updated_at: hace(30) },
-      { id: "guardado-cliente", title: "Preguntas frecuentes de soporte", agent: "codex", model: "gpt-5.6-sol", updated_at: hace(2600) },
+      { id: "borrador-cliente", title: tr("Política de reembolsos", "Refund policy"), agent: "claude", model: "sonnet", updated_at: hace(30) },
+      { id: "guardado-cliente", title: tr("Preguntas frecuentes de soporte", "Support FAQ"), agent: "codex", model: "gpt-5.6-sol", updated_at: hace(2600) },
     ],
     "marketing-drive": [
-      { id: "campaña-q4", title: "Resumen de la campaña de Q4", agent: "codex", model: "gpt-5.6-sol", updated_at: hace(50) },
+      { id: "campaña-q4", title: tr("Resumen de la campaña de Q4", "Q4 campaign summary"), agent: "codex", model: "gpt-5.6-sol", updated_at: hace(50) },
     ],
   };
   // **Las tareas de ejemplo cuentan un trabajo entero**, no una respuesta
@@ -172,9 +186,13 @@
     ],
   };
 
+  // Los archivos que dejan las tareas, con nombre en la lengua de la demo.
+  const REEMBOLSOS = tr("politica-reembolsos.md", "refund-policy.md");
+  const FAQ = tr("preguntas-frecuentes.md", "billing-faq.md");
+  const RESUMEN_MD = tr("resumen.md", "summary.md");
   const TURNOS = {
     landing: [
-      { role: "user", id: "u1", at: hace(52), text: "Revisa la landing de terminus.danil.ai contra lo que hace la app hoy. Quiero algo mucho más simple." },
+      { role: "user", id: "u1", at: hace(52), text: tr("Revisa la landing de terminus.danil.ai contra lo que hace la app hoy. Quiero algo mucho más simple.", "Check the terminus.danil.ai landing against what the app does today. I want something much simpler.") },
       {
         role: "agent", id: "a1", at: hace(47), duration_ms: 212_000, model: "opus",
         tools: [
@@ -183,13 +201,13 @@
           { name: "Grep", target: "gobernanza", ok: true },
           { name: "Read", target: "README.md", ok: true },
         ],
-        text: "Encontré tres problemas:\n\n1. **Promete lo que la app ya no hace**: «tú apruebas lo que sale» y el material «solo lectura».\n2. **Once secciones**, varias de detalle técnico: permisos, idiomas, servidores MCP, firma de código.\n3. **Tres mensajes distintos** entre la landing, el README y la app.\n\nPropongo un hero, tres pasos tomados del onboarding y la descarga. Antes de tocar nada, una duda:",
+        text: tr("Encontré tres problemas:\n\n1. **Promete lo que la app ya no hace**: «tú apruebas lo que sale» y el material «solo lectura».\n2. **Once secciones**, varias de detalle técnico: permisos, idiomas, servidores MCP, firma de código.\n3. **Tres mensajes distintos** entre la landing, el README y la app.\n\nPropongo un hero, tres pasos tomados del onboarding y la descarga. Antes de tocar nada, una duda:", "I found three problems:\n\n1. **It promises what the app no longer does**: “you approve what ships” and “read-only” material.\n2. **Eleven sections**, several of them technical detail: permissions, languages, MCP servers, code signing.\n3. **Three different messages** across the landing, the README and the app.\n\nI propose a hero, three steps taken from onboarding, and the download. Before I touch anything, one question:"),
         questions: [{
-          id: "permisos", question: "¿Qué hago con la tabla de permisos de la GitHub App?", multiple: false, free_text: false,
+          id: "permisos", question: tr("¿Qué hago con la tabla de permisos de la GitHub App?", "What should I do with the GitHub App permissions table?"), multiple: false, free_text: false,
           options: [
-            { value: "quitar", label: "Quitarla" },
-            { value: "readme", label: "Moverla al README", detail: "Sigue documentada, pero fuera de la página" },
-            { value: "dejar", label: "Dejarla como está" },
+            { value: "quitar", label: tr("Quitarla", "Remove it") },
+            { value: "readme", label: tr("Moverla al README", "Move it to the README"), detail: tr("Sigue documentada, pero fuera de la página", "Still documented, just off the page") },
+            { value: "dejar", label: tr("Dejarla como está", "Leave it as is") },
           ],
         }],
       },
@@ -199,7 +217,7 @@
       // Con las dos cosas juntas, el turno que preguntaba desaparecía entero.
       {
         role: "user", id: "u1b", at: hace(45), text: "",
-        answers: [{ turn: "a1", question: "permisos", question_text: "¿Qué hago con la tabla de permisos de la GitHub App?", chosen: ["readme"], text: "Moverla al README", source: "persona", when: hace(45) }],
+        answers: [{ turn: "a1", question: "permisos", question_text: tr("¿Qué hago con la tabla de permisos de la GitHub App?", "What should I do with the GitHub App permissions table?"), chosen: ["readme"], text: tr("Moverla al README", "Move it to the README"), source: "persona", when: hace(45) }],
       },
       {
         role: "agent", id: "a2", at: hace(38), duration_ms: 256_000, model: "opus",
@@ -207,36 +225,36 @@
           { name: "Edit", target: "src/pages/index.astro", ok: true },
           { name: "Edit", target: "README.md", ok: true },
         ],
-        text: "Hecho. El hero dice una sola cosa y los permisos quedaron en el README:\n\n```astro\n<h1>Tus agentes de IA, en una sola app.</h1>\n```\n\nQuité el tachado de «artificial» y la pastilla de plataformas: la descarga ya dice para qué sistemas es.",
+        text: tr("Hecho. El hero dice una sola cosa y los permisos quedaron en el README:\n\n```astro\n<h1>Tus agentes de IA, en una sola app.</h1>\n```\n\nQuité el tachado de «artificial» y la pastilla de plataformas: la descarga ya dice para qué sistemas es.", "Done. The hero says one thing and the permissions now live in the README:\n\n```astro\n<h1>Tus agentes de IA, en una sola app.</h1>\n```\n\nI removed the struck-through “artificial” and the platforms pill: the download already says which systems it is for."),
         code: [{ tree: "work", before: "e5a0c2b", after: "4293fc5" }],
       },
       {
         role: "user", id: "u2", at: hace(36), text: "npm run build",
         shell: { cwd: `${RAIZ}/terminus-landing`, output: "> terminus-web@0.0.0 build\n> astro build\n\n generating static routes\n▶ src/pages/index.astro\n  └─ /index.html (+402ms)\n✓ Completed in 406ms.\n1 page(s) built in 731ms\nComplete!", exit_code: 0, duration_ms: 1_900, truncated: false },
       },
-      { role: "user", id: "u3", at: hace(35), text: "Compila. ¿Algo más que se te haya quedado?" },
+      { role: "user", id: "u3", at: hace(35), text: tr("Compila. ¿Algo más que se te haya quedado?", "It builds. Anything else you left out?") },
       {
         role: "agent", id: "a3", at: hace(33), duration_ms: 64_000, model: "opus",
         tools: [{ name: "Grep", target: "SmartScreen", ok: true }],
-        text: "Una cosa: el aviso de SmartScreen ya no está junto al botón de Windows. Lo dejé fuera a propósito —la página quedó en una idea, tres pasos y la descarga—, pero si lo quieres de vuelta es un renglón.",
+        text: tr("Una cosa: el aviso de SmartScreen ya no está junto al botón de Windows. Lo dejé fuera a propósito —la página quedó en una idea, tres pasos y la descarga—, pero si lo quieres de vuelta es un renglón.", "One thing: the SmartScreen notice is no longer next to the Windows button. I left it out on purpose —the page is now one idea, three steps and the download— but it is one line if you want it back."),
       },
     ],
     "sin-rama": [
-      { role: "user", id: "u1", at: hace(230), text: "Antes de tocar nada, prueba una versión del hero con la demo a la izquierda." },
+      { role: "user", id: "u1", at: hace(230), text: tr("Antes de tocar nada, prueba una versión del hero con la demo a la izquierda.", "Before touching anything, try a hero with the demo on the left.") },
       {
         role: "agent", id: "a1", at: hace(222), duration_ms: 95_000, model: "gemini-3.6-flash-medium",
         tools: [
           { name: "Read", target: "src/styles/global.css", ok: true },
           { name: "Edit", target: "src/styles/global.css", ok: true },
         ],
-        text: "Lo probé en esta copia, sin rama todavía: el hero pasa a dos columnas, con la demo a la izquierda y el texto a la derecha.",
+        text: tr("Lo probé en esta copia, sin rama todavía: el hero pasa a dos columnas, con la demo a la izquierda y el texto a la derecha.", "I tried it in this copy, no branch yet: the hero becomes two columns, demo on the left and copy on the right."),
         code: [{ tree: "work", before: "9a0c3e2", after: "a1c02ef" }],
       },
-      { role: "user", id: "u2", at: hace(215), text: "Mmm, el título pierde fuerza. Déjalo así por ahora." },
-      { role: "agent", id: "a2", at: hace(210), duration_ms: 8_000, model: "gemini-3.6-flash-medium", text: "Queda en esta copia y tu carpeta no se tocó. Si la retomas, sigo desde aquí; si no, la puedes finalizar." },
+      { role: "user", id: "u2", at: hace(215), text: tr("Mmm, el título pierde fuerza. Déjalo así por ahora.", "Hmm, the headline loses strength. Leave it there for now.") },
+      { role: "agent", id: "a2", at: hace(210), duration_ms: 8_000, model: "gemini-3.6-flash-medium", text: tr("Queda en esta copia y tu carpeta no se tocó. Si la retomas, sigo desde aquí; si no, la puedes finalizar.", "It stays in this copy and your folder was not touched. Pick it up and I continue from here; if not, you can finish it.") },
     ],
     "pr-abierto": [
-      { role: "user", id: "u1", at: hace(1430), text: "Falta el aviso de SmartScreen junto al botón de Windows." },
+      { role: "user", id: "u1", at: hace(1430), text: tr("Falta el aviso de SmartScreen junto al botón de Windows.", "The SmartScreen notice is missing next to the Windows button.") },
       {
         role: "agent", id: "a1", at: hace(1418), duration_ms: 118_000, model: "grok-code-fast-1",
         tools: [
@@ -244,10 +262,10 @@
           { name: "Edit", target: "src/pages/index.astro", ok: true },
           { name: "Edit", target: "src/styles/global.css", ok: true },
         ],
-        text: "Agregado debajo de la versión, con el mismo texto que usa el README del instalador.",
+        text: tr("Agregado debajo de la versión, con el mismo texto que usa el README del instalador.", "Added below the version, with the same wording as the installer README."),
         code: [{ tree: "work", before: "5d21c88", after: "7f0d914" }],
       },
-      { role: "user", id: "u2", at: hace(1410), text: "Súbelo y abre el PR." },
+      { role: "user", id: "u2", at: hace(1410), text: tr("Súbelo y abre el PR.", "Push it and open the PR.") },
       {
         role: "agent", id: "a2", at: hace(1400), duration_ms: 41_000, model: "grok-code-fast-1",
         tools: [
@@ -255,11 +273,11 @@
           { name: "Bash", target: "git push -u origin fix/smartscreen-aviso", ok: true },
           { name: "Bash", target: "gh pr create --fill", ok: true },
         ],
-        text: "Listo: la rama es `fix/smartscreen-aviso` y el pull request **#21** quedó abierto, con las pruebas pasando. Falta la revisión.",
+        text: tr("Listo: la rama es `fix/smartscreen-aviso` y el pull request **#21** quedó abierto, con las pruebas pasando. Falta la revisión.", "Done: the branch is `fix/smartscreen-aviso` and pull request **#21** is open, with tests passing. Review is pending."),
       },
     ],
     "pr-mergeado": [
-      { role: "user", id: "u1", at: hace(4240), text: "El iframe de la demo no dice qué es cuando lo lee un lector de pantalla." },
+      { role: "user", id: "u1", at: hace(4240), text: tr("El iframe de la demo no dice qué es cuando lo lee un lector de pantalla.", "The demo iframe does not say what it is to a screen reader.") },
       {
         role: "agent", id: "a1", at: hace(4232), duration_ms: 73_000, model: "opencode/hy3-free",
         tools: [
@@ -269,63 +287,63 @@
         text: "Le faltaba `title`, que es lo que anuncia un lector de pantalla al entrar a un iframe:\n\n```astro\n<iframe\n  src=\"/demo/\"\n  title=\"Terminus: la app real, con respuestas simuladas\"\n```",
         code: [{ tree: "work", before: "2f9e6a1", after: "3bb27a0" }],
       },
-      { role: "user", id: "u2", at: hace(4225), text: "Abre el PR." },
+      { role: "user", id: "u2", at: hace(4225), text: tr("Abre el PR.", "Open the PR.") },
       {
         role: "agent", id: "a2", at: hace(4220), duration_ms: 36_000, model: "opencode/hy3-free",
         tools: [
           { name: "Bash", target: "git push -u origin fix/aria-arbol", ok: true },
           { name: "Bash", target: "gh pr create --fill", ok: true },
         ],
-        text: "Abierto como **#14**.",
+        text: tr("Abierto como **#14**.", "Opened as **#14**."),
       },
-      { role: "user", id: "u3", at: hace(4205), text: "Ya lo aprobaron y se fusionó." },
-      { role: "agent", id: "a3", at: hace(4200), duration_ms: 5_000, model: "opencode/hy3-free", text: "Entonces esta tarea ya cumplió. Con el cohete la finalizas: se archiva y se borran el worktree y la rama local; el pull request se queda registrado." },
+      { role: "user", id: "u3", at: hace(4205), text: tr("Ya lo aprobaron y se fusionó.", "It was approved and merged.") },
+      { role: "agent", id: "a3", at: hace(4200), duration_ms: 5_000, model: "opencode/hy3-free", text: tr("Entonces esta tarea ya cumplió. Con el cohete la finalizas: se archiva y se borran el worktree y la rama local; el pull request se queda registrado.", "Then this task is done. The rocket finishes it: it is archived and the worktree and local branch are removed; the pull request stays on record.") },
     ],
     docs: [
-      { role: "user", id: "u1", at: hace(100), text: "¿Qué dice la documentación que es Terminus?" },
+      { role: "user", id: "u1", at: hace(100), text: tr("¿Qué dice la documentación que es Terminus?", "What does the documentation say Terminus is?") },
       {
         role: "agent", id: "a1", at: hace(96), duration_ms: 41_000, model: "gpt-5.6-sol",
         tools: [
           { name: "Read", target: "docs/ARCHITECTURE.md", ok: true },
           { name: "Read", target: "README.md", ok: true },
         ],
-        text: "Una app de escritorio para trabajar con agentes de terminal sobre el material de una organización:\n\n- Corre en la computadora de quien la usa, **con la suscripción de cada persona**.\n- No usa ningún servicio de Danil: ni servidores, ni base de datos.\n- Lo que sale de la máquina es poco y está listado: los CLIs contra su proveedor, GitHub o Bitbucket para clonar, los servidores MCP que conectes y el updater.",
+        text: tr("Una app de escritorio para trabajar con agentes de terminal sobre el material de una organización:\n\n- Corre en la computadora de quien la usa, **con la suscripción de cada persona**.\n- Cada tarea trabaja en su propia copia del proyecto.\n- Lo que sale de la máquina es poco y está listado: los CLIs contra su proveedor, GitHub o Bitbucket para clonar, los servidores MCP que conectes, el updater y, si eliges uno, el servidor de Radiant.", "A desktop app to work with terminal agents on an organization's material:\n\n- It runs on the computer of whoever uses it, **with each person's own subscription**.\n- Each task works in its own copy of the project.\n- What leaves the machine is short and listed: the CLIs to their provider, GitHub or Bitbucket to clone, the MCP servers you connect, the updater and, if you choose one, the Radiant server."),
       },
-      { role: "user", id: "u2", at: hace(93), text: "¿Y qué NO es?" },
+      { role: "user", id: "u2", at: hace(93), text: tr("¿Y qué NO es?", "And what is it NOT?") },
       {
         role: "agent", id: "a2", at: hace(90), duration_ms: 22_000, model: "gpt-5.6-sol",
-        tools: [{ name: "Grep", target: "appv2", ok: true }],
-        text: "No es `appv2` ni una versión de ella: esa corre en la nube con los servicios de Danil. Tampoco tiene todavía una sección de agentes locales —la documentación la marca como **visión**, no como algo construido.",
+        tools: [{ name: "Grep", target: "Radiant", ok: true }],
+        text: tr("No es una app en la nube: los agentes corren en tu computadora, sobre tus carpetas. Si conectas el workspace a Radiant, a ese servidor van tu sesión y, si su política lo pide, el consumo de cada turno; **nunca transcripciones, archivos ni rutas**.", "It is not a cloud app: the agents run on your computer, on your folders. If you connect the workspace to Radiant, that server gets your session and, if its policy asks for it, each turn's usage; **never transcripts, files or paths**."),
       },
     ],
     "borrador-cliente": [
-      { role: "user", id: "u1", at: hace(36), text: "Escribe la política de reembolsos para el plan Starter." },
+      { role: "user", id: "u1", at: hace(36), text: tr("Escribe la política de reembolsos para el plan Starter.", "Write the refund policy for the Starter plan.") },
       {
         role: "agent", id: "a1", at: hace(31), duration_ms: 71_000, model: "sonnet",
         tools: [
           { name: "Read", target: "planes.md", ok: true },
-          { name: "Write", target: "politica-reembolsos.md", ok: true },
+          { name: "Write", target: REEMBOLSOS, ok: true },
         ],
-        text: "Aquí tienes un primer borrador. Todavía **no está guardado** en tu carpeta: revísalo y, si te sirve, lo guardas desde la tarea.",
-        artifacts: [{ rel: "politica-reembolsos.md", bytes: 612, revision: false }],
+        text: tr("Aquí tienes un primer borrador. Todavía **no está guardado** en tu carpeta: revísalo y, si te sirve, lo guardas desde la tarea.", "Here is a first draft. It is **not saved** to your folder yet: review it and, if it works, save it from the task."),
+        artifacts: [{ rel: REEMBOLSOS, bytes: 612, revision: false }],
       },
     ],
     "guardado-cliente": [
-      { role: "user", id: "u1", at: hace(2615), text: "Junta las preguntas que más hace soporte sobre facturación." },
+      { role: "user", id: "u1", at: hace(2615), text: tr("Junta las preguntas que más hace soporte sobre facturación.", "Collect the billing questions support gets most.") },
       {
         role: "agent", id: "a1", at: hace(2608), duration_ms: 54_000, model: "gpt-5.6-sol",
         tools: [
           { name: "Read", target: "tickets-agosto.csv", ok: true },
-          { name: "Write", target: "preguntas-frecuentes.md", ok: true },
+          { name: "Write", target: FAQ, ok: true },
         ],
-        text: "Salieron cinco que concentran casi todos los tickets. Te las dejé con su respuesta corta.",
-        artifacts: [{ rel: "preguntas-frecuentes.md", bytes: 540, revision: false }],
+        text: tr("Salieron cinco que concentran casi todos los tickets. Te las dejé con su respuesta corta.", "Five questions cover almost every ticket. I left them with a short answer each."),
+        artifacts: [{ rel: FAQ, bytes: 540, revision: false }],
       },
-      { role: "user", id: "u2", at: hace(2604), text: "Perfecto, guárdalo." },
-      { role: "agent", id: "a2", at: hace(2600), duration_ms: 3_000, model: "gpt-5.6-sol", text: "Guardado en tu carpeta de documentos." },
+      { role: "user", id: "u2", at: hace(2604), text: tr("Perfecto, guárdalo.", "Perfect, save it.") },
+      { role: "agent", id: "a2", at: hace(2600), duration_ms: 3_000, model: "gpt-5.6-sol", text: tr("Guardado en tu carpeta de documentos.", "Saved to your documents folder.") },
     ],
     "campaña-q4": [
-      { role: "user", id: "u1", at: hace(56), text: "Resume qué hay en la carpeta de la campaña de Q4." },
+      { role: "user", id: "u1", at: hace(56), text: tr("Resume qué hay en la carpeta de la campaña de Q4.", "Summarize what is in the Q4 campaign folder.") },
       {
         role: "agent", id: "a1", at: hace(50), duration_ms: 33_000, model: "gpt-5.6-sol",
         tools: [
@@ -333,7 +351,7 @@
           { name: "Read", target: "presupuesto-q4.xlsx", ok: true },
           { name: "Read", target: "calendario.md", ok: true },
         ],
-        text: "Esto es una demo: la respuesta está simulada. En Terminus, el agente lee de verdad los archivos de tu Drive, sin copiarlos a ningún servidor de Danil.\n\n| Archivo | Qué es |\n|---|---|\n| briefing-q4.docx | Objetivos y mensajes de la campaña |\n| presupuesto-q4.xlsx | Presupuesto por canal |\n| calendario.md | Fechas de lanzamiento |",
+        text: tr("Esto es una demo: la respuesta está simulada. En Terminus, el agente lee de verdad los archivos de tu Drive, sin copiarlos a ningún servidor de Danil.\n\n| Archivo | Qué es |\n|---|---|\n| briefing-q4.docx | Objetivos y mensajes de la campaña |\n| presupuesto-q4.xlsx | Presupuesto por canal |\n| calendario.md | Fechas de lanzamiento |", "This is a demo: the answer is simulated. In Terminus, the agent really reads the files in your Drive, without copying them to any Danil server.\n\n| File | What it is |\n|---|---|\n| briefing-q4.docx | Campaign goals and messages |\n| presupuesto-q4.xlsx | Budget per channel |\n| calendario.md | Launch dates |"),
       },
     ],
   };
@@ -341,10 +359,10 @@
   // abra un archivo con contenido.
   const ARTEFACTOS = {
     "borrador-cliente": {
-      "politica-reembolsos.md": "# Política de reembolsos — plan Starter\n\n**Borrador.**\n\n- Puedes pedir el reembolso completo en los primeros **14 días** desde el primer cobro.\n- Después de ese plazo no hay reembolsos parciales: el plan sigue activo hasta el fin del periodo pagado.\n- Si cambias a un plan más barato, la diferencia queda como saldo a favor.\n\n## Cómo pedirlo\n\nEscribe a soporte con el correo de la cuenta. Respondemos en dos días hábiles.\n",
+      [REEMBOLSOS]: tr("# Política de reembolsos — plan Starter\n\n**Borrador.**\n\n- Puedes pedir el reembolso completo en los primeros **14 días** desde el primer cobro.\n- Después de ese plazo no hay reembolsos parciales: el plan sigue activo hasta el fin del periodo pagado.\n- Si cambias a un plan más barato, la diferencia queda como saldo a favor.\n\n## Cómo pedirlo\n\nEscribe a soporte con el correo de la cuenta. Respondemos en dos días hábiles.\n", "# Refund policy — Starter plan\n\n**Draft.**\n\n- You can request a full refund within **14 days** of the first charge.\n- After that there are no partial refunds: the plan stays active until the end of the paid period.\n- If you move to a cheaper plan, the difference stays as credit.\n\n## How to request it\n\nWrite to support from the account email. We reply within two business days.\n"),
     },
     "guardado-cliente": {
-      "preguntas-frecuentes.md": "# Preguntas frecuentes de facturación\n\n1. **¿Cuándo se me cobra?** El mismo día de cada mes en que te suscribiste.\n2. **¿Puedo cambiar de plan?** Sí, en cualquier momento; el cambio se prorratea.\n3. **¿Dónde está mi factura?** En Configuración → Facturación.\n4. **¿Qué pasa si falla un pago?** Reintentamos tres días y te avisamos por correo.\n5. **¿Puedo pagar anual?** Sí, con dos meses de descuento.\n",
+      [FAQ]: tr("# Preguntas frecuentes de facturación\n\n1. **¿Cuándo se me cobra?** El mismo día de cada mes en que te suscribiste.\n2. **¿Puedo cambiar de plan?** Sí, en cualquier momento; el cambio se prorratea.\n3. **¿Dónde está mi factura?** En Configuración → Facturación.\n4. **¿Qué pasa si falla un pago?** Reintentamos tres días y te avisamos por correo.\n5. **¿Puedo pagar anual?** Sí, con dos meses de descuento.\n", "# Billing FAQ\n\n1. **When am I charged?** On the same day each month you subscribed.\n2. **Can I change plans?** Yes, any time; the change is prorated.\n3. **Where is my invoice?** In Settings → Billing.\n4. **What if a payment fails?** We retry for three days and email you.\n5. **Can I pay yearly?** Yes, with two months off.\n"),
     },
   };
 
@@ -517,12 +535,20 @@ const PREGUNTAS = [
     const pagina = "src/pages/index.astro";
     const antes = original(pagina) ?? "";
     const RESUMEN = conArbol
-      ? "# Qué cambió\n\n- Nuevo componente `src/components/Preguntas.astro`, con tres preguntas.\n- La página lo muestra antes del cierre.\n- `npm run build` pasa.\n"
-      : "# Respuesta\n\nEsto es una demo: en la app real, el agente lee tus documentos y escribe aquí lo que encontró.\n";
+      ? tr("# Qué cambió\n\n- Nuevo componente `src/components/Preguntas.astro`, con tres preguntas.\n- La página lo muestra antes del cierre.\n- `npm run build` pasa.\n",
+          "# What changed\n\n- New component `src/components/Preguntas.astro`, with three questions.\n- The page shows it before the closing section.\n- `npm run build` passes.\n")
+      : tr("# Respuesta\n\nEsto es una demo: en la app real, el agente lee tus documentos y escribe aquí lo que encontró.\n",
+          "# Answer\n\nThis is a demo: in the real app, the agent reads your documents and writes here what it found.\n");
     const nombre = etiqueta(agente);
     const texto = conArbol
-      ? `Esto es una demo: la respuesta está simulada. En Terminus, ${nombre} trabaja de verdad sobre tu carpeta, con tu cuenta.\n\nPara que veas cómo se ve, agregué una sección de **preguntas frecuentes**:\n\n- Creé \`src/components/Preguntas.astro\`.\n- La puse en \`src/pages/index.astro\`, antes del cierre.\n- Corrí \`npm run build\` y pasa.\n\nLos cambios están en el árbol de trabajo, y el resumen en \`resumen.md\`.`
-      : `Esto es una demo: la respuesta está simulada. En Terminus, ${nombre} lee de verdad el material de tu proyecto, con tu cuenta, y te deja lo que encuentra como archivo. Te dejé uno de ejemplo en \`resumen.md\`.`;
+      ? tr(
+          `Esto es una demo: la respuesta está simulada. En Terminus, ${nombre} trabaja de verdad sobre tu carpeta, con tu cuenta.\n\nPara que veas cómo se ve, agregué una sección de **preguntas frecuentes**:\n\n- Creé \`src/components/Preguntas.astro\`.\n- La puse en \`src/pages/index.astro\`, antes del cierre.\n- Corrí \`npm run build\` y pasa.\n\nLos cambios están en el árbol de trabajo, y el resumen en \`${RESUMEN_MD}\`.`,
+          `This is a demo: the answer is simulated. In Terminus, ${nombre} really works on your folder, with your account.\n\nTo show you how it looks, I added an **FAQ** section:\n\n- Created \`src/components/Preguntas.astro\`.\n- Placed it in \`src/pages/index.astro\`, before the closing section.\n- Ran \`npm run build\` and it passes.\n\nThe changes are in the work tree, and the summary in \`${RESUMEN_MD}\`.`,
+        )
+      : tr(
+          `Esto es una demo: la respuesta está simulada. En Terminus, ${nombre} lee de verdad el material de tu proyecto, con tu cuenta, y te deja lo que encuentra como archivo. Te dejé uno de ejemplo en \`${RESUMEN_MD}\`.`,
+          `This is a demo: the answer is simulated. In Terminus, ${nombre} really reads your project's material, with your account, and leaves what it finds as a file. I left you a sample one in \`${RESUMEN_MD}\`.`,
+        );
 
     const pasos = conArbol
       ? [
@@ -531,11 +557,11 @@ const PREGUNTAS = [
           ["Write", "src/components/Preguntas.astro", { kind: "edit", before: null, after: COMPONENTE }, () => { (NUEVOS[s] ??= {})["src/components/Preguntas.astro"] = COMPONENTE; }],
           ["Edit", pagina, { kind: "edit", before: antes, after: conPreguntas(antes) }, () => { (EDITADOS[s] ??= {})[pagina] = conPreguntas(antes); }],
           ["Bash", "npm run build", { kind: "output", text: "> astro build\n\n▶ src/pages/index.astro\n  └─ /index.html (+402ms)\n✓ Completed in 406ms.\n1 page(s) built in 731ms\nComplete!", exit_code: 0, truncated: false }],
-          ["Write", "resumen.md", { kind: "edit", before: null, after: RESUMEN }, () => { (ARTEFACTOS[s] ??= {})["resumen.md"] = RESUMEN; }],
+          ["Write", RESUMEN_MD, { kind: "edit", before: null, after: RESUMEN }, () => { (ARTEFACTOS[s] ??= {})[RESUMEN_MD] = RESUMEN; }],
         ]
       : [
           ["Read", "README.md", null],
-          ["Write", "resumen.md", { kind: "edit", before: null, after: RESUMEN }, () => { (ARTEFACTOS[s] ??= {})["resumen.md"] = RESUMEN; }],
+          ["Write", RESUMEN_MD, { kind: "edit", before: null, after: RESUMEN }, () => { (ARTEFACTOS[s] ??= {})[RESUMEN_MD] = RESUMEN; }],
         ];
 
     const base = { workspace: WS, session: s, meta: null, ok: null, request_id: null };
@@ -579,8 +605,8 @@ const PREGUNTAS = [
     const modelo = a.model ?? MODELOS[agente]?.[0]?.id ?? null;
     if (!s) {
       s = `demo-${Date.now()}`;
-      const titulo = String(a.prompt ?? "Nueva tarea").split("\n")[0].slice(0, 48);
-      (SESIONES[p] ??= []).unshift({ id: s, title: titulo, agent: agente, model: modelo, updated_at: Date.now() });
+      const titulo = String(a.prompt ?? tr("Nueva tarea", "New task")).split("\n")[0].slice(0, 48);
+      (SESIONES[p] ??= []).unshift({ id: s, title: titulo, agent: agente, model: modelo, permission_mode: a.permission_mode ?? null, updated_at: Date.now() });
     }
     (TURNOS[s] ??= []).push({ role: "user", id: `u-${Date.now()}`, at: Date.now(), text: String(a.prompt ?? "") });
     correrTurno(s, sesion(s)?.agent ?? agente, modelo);
@@ -591,6 +617,10 @@ const PREGUNTAS = [
 
   // Estado del entorno cruza los dos por id: el requisito dice si está, la
   // dependencia qué versión y dónde. Es lo que la preparación deja instalado.
+  const RADIANT = {
+    cloud_server: "https://radiant.danil.ai", server: "https://radiant.danil.ai", signed_in: true,
+    workspace: { id: "danil", name: "Danil" }, login: null,
+  };
   const HERRAMIENTAS = [
     ["git", "Git", "2.51.0", "tool", 48_000_000],
     ["node", "Node.js", "22.20.0", "tool", 96_000_000],
@@ -605,24 +635,51 @@ const PREGUNTAS = [
       essential: ["git", "node"], runtimeVersions: {},
       items: HERRAMIENTAS.map(([id, label, , manager, bytes]) => ({
         id, label, ok: true, required: id === "git" || id === "node", detail: "", remedy: null,
-        source: "instalado por la app", bytes, installable: false, redundant: false, manager,
+        source: tr("instalado por la app", "installed by the app"), bytes, installable: false, redundant: false, manager,
       })),
     },
     list_dependencies: HERRAMIENTAS.map(([id, label, version, , bytes]) => ({
       id, label, version, location: `/Users/demo/Library/Application Support/ai.danil.terminus/entorno/${id}`, bytes,
     })),
     list_agents: AGENTES,
+    // Los agentes propios de la máquina y los que declara cada repositorio
+    // (Configuración → Agentes y Apariencia). En la demo no hay ninguno.
+    list_machine_agents: { own: [], repository: [] },
     list_workspaces: ARRANQUE,
+    // Los dos ajustes del workspace que Configuración → General cambia con un
+    // `<select>`, que el guardia deja pasar: se guardan aquí para que la app
+    // no los revierta al releer el workspace.
+    set_workspace_language: (a) => { ESPACIO.lengua = a?.lengua ?? null; return null; },
+    set_workspace_permission_mode: (a) => { ESPACIO.default_permission_mode = a?.mode ?? null; return ESPACIO; },
     workspaces_startup: ARRANQUE,
     list_projects: PROYECTOS,
     // **Solo las del proyecto que se pregunta.** Las filas no dicen de qué
     // proyecto son: la app las agrupa por la pregunta, y `""` son las tareas
     // sueltas. Contestar todas a `""` las volvía sueltas, la pestaña se quedaba
     // sin proyecto y el árbol de trabajo no se montaba.
-    list_sessions: (a) => (SESIONES[a?.project] ?? []).map((s) => fila(s, a.project)),
+    // Las archivadas no salen en la lista viva salvo que tengan una pestaña
+    // abierta (`open`), igual que `sessions::lista_viva`: su lugar es la
+    // pantalla de archivadas (`archived_tasks`).
+    list_live_sessions: (a) => (SESIONES[a?.project] ?? [])
+      .filter((s) => !s.archived || (a?.open ?? []).includes(s.id))
+      .map((s) => fila(s, a.project)),
+    archived_tasks: () => ({
+      tasks: Object.entries(SESIONES).flatMap(([p, lista]) => lista.filter((s) => s.archived).map((s) => ({ ...fila(s, p), folder: p }))),
+      spaces: [],
+    }),
+    // El sondeo del servicio (`App.tsx`, cada 250 ms tras contestar). Si no
+    // contesta un objeto, a los 10 s la app avisa que no hay conexión con el
+    // servicio. Aquí no hay servicio que se reinicie: el cursor no avanza y la
+    // respuesta se hace esperar un segundo para no girar en vacío.
+    service_poll: (a) => new Promise((listo) => setTimeout(
+      () => listo({ cursor: a?.cursor ?? 0, gap: false, replay: false, runtime: "demo", reset: false }),
+      1000,
+    )),
     load_session: (a) => {
       const s = sesion(a?.id ?? a?.session) ?? filas()[0];
-      return { id: s.id, agent: s.agent, sources: [], model: s.model, effort: null, permission_mode: null, turns: TURNOS[s.id] ?? [] };
+      // Sin modo, la caja enseña «permisos» a secas: se devuelve el de fábrica
+      // (`Modo::OMISION`) o el que eligió quien creó la tarea en la demo.
+      return { id: s.id, agent: s.agent, sources: [], model: s.model, effort: null, permission_mode: s.permission_mode ?? "ediciones", turns: TURNOS[s.id] ?? [] };
     },
     send_message: enviar,
     finish_task: (a) => {
@@ -630,6 +687,9 @@ const PREGUNTAS = [
       if (s) { s.archived = true; FINALIZADAS.add(s.id); }
       return null;
     },
+    // Antes de finalizar o archivar, la app pregunta qué se perdería
+    // (`Sessions.tsx`, `intentar`). En la demo no hay nada sin guardar.
+    task_blockers: { unsaved: [], not_finished: false },
     set_task_archived: (a) => {
       const s = sesion(a?.id ?? a?.session);
       if (s) s.archived = a?.archived !== false;
@@ -690,7 +750,7 @@ const PREGUNTAS = [
     list_accounts: (a) => ({
       agent: a?.agent, env_var: "", shared_credential: null, secret_note: null,
       active: CONECTADAS[a?.agent] ? `cuenta-${a.agent}` : null,
-      accounts: CONECTADAS[a?.agent] ? [{ id: `cuenta-${a.agent}`, label: "Cuenta 1", created_at: hace(60 * 24 * 20), identity: null, authenticated_at: hace(60 * 24 * 20) }] : [],
+      accounts: CONECTADAS[a?.agent] ? [{ id: `cuenta-${a.agent}`, label: tr("Cuenta 1", "Account 1"), created_at: hace(60 * 24 * 20), identity: null, authenticated_at: hace(60 * 24 * 20) }] : [],
     }),
     account_limits: (a) => ({
       mode: "read", plan: null, fetched_at: Date.now(),
@@ -758,11 +818,32 @@ const PREGUNTAS = [
     // Los comandos «/», para probar el otro disparador. Nombres inventados
     // —no hay skills reales instaladas en la demo— pero con la forma exacta
     // que usa la app: nombre y una línea de qué hacen.
-    list_commands: [
-      { name: "resumen", description: "Resume la conversación en un párrafo." },
-      { name: "revisar-cambios", description: "Revisa el árbol de trabajo antes de guardarlo." },
-      { name: "documentar", description: "Escribe qué cambió, en una página." },
-    ],
+    list_slash_menu: {
+      commands: [],
+      skills: [
+        { name: "resumen", description: tr("Resume la conversación en un párrafo.", "Summarizes the conversation in one paragraph.") },
+        { name: "revisar-cambios", description: tr("Revisa el árbol de trabajo antes de guardarlo.", "Reviews the work tree before saving it.") },
+        { name: "documentar", description: tr("Escribe qué cambió, en una página.", "Writes what changed, in one page.") },
+      ],
+      side_question: null,
+    },
+
+    // Configuración → Radiant: sesión iniciada en Radiant Cloud, con el
+    // workspace «Danil» elegido y sin gobierno. Es el estado más simple que
+    // enseña la pantalla entera sin inventar una política: sin correo ni
+    // organización (la app dice solo el servidor) y sin servidores ni
+    // conexiones gobernadas. El servidor es `CLOUD_SERVER` de
+    // `workspace/radiant.rs`. Iniciar o cerrar sesión no está guionado.
+    radiant_status: RADIANT,
+    get_radiant_identity: { status: "ok", email: null, name: null, organization: null, organizations: [], note: null },
+    list_radiant_workspaces: [RADIANT.workspace],
+    // El selector de workspace es un `<select>` nativo y el guardia lo deja
+    // pasar; solo hay uno, así que elegirlo deja todo como estaba.
+    radiant_select_workspace: RADIANT,
+    radiant_governance_status: { governed: null, stale: false, notice: null, summary: null },
+    radiant_usage_status: { state: "not_governed", policy: null, opted_in: false, queued: 0, quarantined: 0, last_error: null },
+    list_radiant_connections: [],
+    list_governed_mcp_logins: [],
     list_permission_modes: MODOS_DE_PERMISO,
     // Una ventana de memoria por sesión: cabe menos en las tareas más largas.
     // `context_used` es lo que reportó el último turno; sin ese dato el
@@ -857,7 +938,11 @@ const PREGUNTAS = [
       }
     },
   };
-  localStorage.setItem("harness:lengua", "es");
+  // La lengua manda la del workspace; esto es para el primer frame
+  // (`lib/i18n.ts`, `harness:lengua:ultima`), que si no abre en la de la
+  // máquina y cambia a la vista.
+  localStorage.setItem("harness:lengua", LENGUA);
+  localStorage.setItem("harness:lengua:ultima", LENGUA);
 
   /* ------------------------------------------------------- el guardia */
 
@@ -877,11 +962,14 @@ const PREGUNTAS = [
    * escribir y enviar un mensaje, empezar una tarea nueva —global o dentro de
    * una carpeta—, elegir el proyecto de una tarea nueva, el razonamiento y
    * los permisos del turno, y Configuración en modo lectura (sus secciones y
-   * la Apariencia), elegir agente y modelo, y finalizar, archivar o
-   * desarchivar una tarea. Todo lo demás —cuentas, proveedores, instalar,
+   * la Apariencia), elegir agente y modelo, y finalizar o archivar una
+   * tarea. Todo lo demás —cuentas, proveedores, instalar,
    * borrar, crear un proyecto— no está en la lista, y por eso no hace nada.
    */
-  const AVISO = "En la demo esto no está disponible. Descarga Terminus para probarlo.";
+  const AVISO = tr(
+    "En la demo esto no está disponible. Descarga Terminus para probarlo.",
+    "This isn't available in the demo. Download Terminus to try it.",
+  );
   let toast = null;
   function avisar(texto) {
     if (!toast) {
@@ -906,17 +994,48 @@ const PREGUNTAS = [
   const CONTROL = 'button, a[href], [role="tab"], [role="radio"], [role="checkbox"], summary, select';
 
   /**
+   * **Los rótulos se reconocen por su clave del catálogo, no por su texto.**
+   * La interfaz puede estar en español o en inglés, y la app los cambia de
+   * redacción sin avisar: comparar contra frases escritas aquí bloqueaba en
+   * inglés lo que en español pasaba, y ya se había quedado atrás en español
+   * («Buscar carpeta» pasó a ser «Buscar proyecto»). `scripts/demo.mjs` lee
+   * cada `rotulo("…")` de este archivo y deja en `datos.js` su texto en todas
+   * las lenguas de la app; si una clave desaparece del catálogo, la
+   * compilación falla en vez de dejar un botón bloqueado.
+   *
+   * `{nombre}` en el catálogo vale por cualquier texto: «Cerrar «{title}»».
+   */
+  const patrones = new Map();
+  function rotulo(clave) {
+    if (!patrones.has(clave)) {
+      const textos = D.textos?.[clave] ?? [];
+      if (!textos.length) console.warn(`[demo] sin texto para la clave ${clave}`);
+      patrones.set(clave, textos.map((t) => new RegExp(`^${t.replace(/[.*+?^$()|[\]\\]/g, "\\$&").replace(/\{[^}]+\}/g, ".+")}$`)));
+    }
+    return patrones.get(clave);
+  }
+  const dice = (texto, ...claves) => {
+    const limpio = String(texto ?? "").trim();
+    return claves.some((c) => rotulo(c).some((re) => re.test(limpio)));
+  };
+  // Lo mismo, para un texto que trae pegado algo después: la tarjeta de lo
+  // que produjo un turno junta varios `span` —«Produjoinforme.md12 kB»—, así
+  // que su rótulo es solo el principio.
+  const empiezaCon = (texto, clave) => (D.textos?.[clave] ?? []).some((t) => String(texto ?? "").trim().startsWith(t));
+
+  /**
    * **El árbol de trabajo no tiene una marca propia que decir «soy yo».** Es
    * código de `harness-app`, no de esta demo, así que se ubica por lo único
    * estable que sí tiene: el botón que lo cierra y el rótulo «Carpeta» que lo
    * encabeza. Sin ellos —columna cerrada— no hay nada que ubicar.
    */
   function regionDelArbol() {
-    const cerrar = document.querySelector('button[aria-label="Cerrar el árbol de trabajo"]');
+    const cerrar = Array.from(document.querySelectorAll("button[aria-label]"))
+      .find((b) => dice(b.getAttribute("aria-label"), "code.column.close.label"));
     if (!cerrar) return null;
     for (let n = cerrar.parentElement, i = 0; n && i < 14; n = n.parentElement, i++) {
       const tieneRotulo = Array.from(n.querySelectorAll("*")).some(
-        (x) => x.childElementCount === 0 && x.textContent.trim() === "Carpeta",
+        (x) => x.childElementCount === 0 && dice(x.textContent, "code.column.title"),
       );
       if (tieneRotulo) return n;
     }
@@ -932,41 +1051,40 @@ const PREGUNTAS = [
     if (control.matches('a[href^="http"], a[href^="mailto:"]')) return true; // el propio chat ya intercepta su navegación
 
     const etiqueta = control.getAttribute("aria-label") ?? "";
-    if (
-      [
-        "Ocultar el historial", "Mostrar el historial",
-        "Ver el árbol de trabajo", "Cerrar el árbol de trabajo",
-        "Configuración", "Cerrar configuración (Esc)",
-        "Preguntar", "Detener turno",
-        "Nueva tarea", // el riel, siempre abre una tarea en blanco: `nuevaSesion()`
-        "Proyecto", // el selector de «Sin proyecto ⌄» que arma esa tarea en blanco
-      ].includes(etiqueta)
-    ) return true;
-    if (etiqueta.startsWith("Cerrar «")) return true; // cerrar una pestaña de tarea, no borrarla
-    if (etiqueta.startsWith("Nueva tarea en ")) return true; // el «+» de un proyecto: misma acción, con destino fijo
-    if (etiqueta.startsWith("Permisos: ")) return true; // el modo del turno: no toca ninguna cuenta
+    if (dice(
+      etiqueta,
+      "shell.sidebar.hide", "shell.sidebar.show",
+      "shell.work_tree.open", "shell.work_tree.close", "code.column.close.label",
+      "settings.title", "settings.close",
+      "chat.composer.send", "chat.turn.stop",
+      "shell.sidebar.new_task", // el riel, siempre abre una tarea en blanco: `nuevaSesion()`
+      "projects.picker.label", // el selector de «Sin proyecto ⌄» que arma esa tarea en blanco
+      "projects.tabs.close_named", // cerrar una pestaña de tarea, no borrarla
+      "shell.sidebar.new_task_in", // el «+» de un proyecto: misma acción, con destino fijo
+      "chat.mode.aria", // el modo del turno: no toca ninguna cuenta
+    )) return true;
     // El botón grande de la portada de un proyecto no lleva `aria-label`,
     // solo el texto — misma llamada que el del riel (`nuevaSesion`).
-    if (control.tagName === "BUTTON" && control.textContent.trim() === "Nueva tarea") return true;
-    // Archivar y desarchivar, del menú de la tarea o de su historial: el
-    // simulador los guarda, y la tarea cambia de lista.
-    if (["Archivar tarea", "Desarchivar tarea"].includes((etiqueta || control.textContent).trim())) return true;
-    // La tarjeta de lo que produjo un turno: abrirla es leer un archivo. Su
-    // texto viene de varios `span` pegados —«Produjoinforme.md12 kB»—, así
-    // que aquí no puede ir un espacio detrás.
-    if (control.textContent.trim().startsWith("Produjo")) return true;
+    if (control.tagName === "BUTTON" && dice(control.textContent, "projects.view.new_task", "shell.sidebar.new_task")) return true;
+    // Archivar, del menú de la tarea: el simulador lo guarda y la tarea pasa
+    // a la pantalla de archivadas.
+    if (dice(etiqueta || control.textContent, "projects.sessions.archive")) return true;
+    // La tarjeta de lo que produjo un turno: abrirla es leer un archivo.
+    if (empiezaCon(control.textContent, "chat.delivery.produced")) return true;
 
     if (control.getAttribute("role") === "tab") return true; // cambiar de vista, nunca de dato
 
     if (control.getAttribute("role") === "radio") {
-      return control.closest('[role="radiogroup"]')?.getAttribute("aria-label") === "Apariencia";
+      // El tema y el estilo oscuro de Configuración → Apariencia: solo cambian
+      // cómo se pinta la ventana.
+      return dice(control.closest('[role="radiogroup"]')?.getAttribute("aria-label"), "settings.appearance.theme.title", "settings.appearance.dark_style.title");
     }
     // Las opciones de permisos: mismo trato que la Apariencia, por el mismo
     // motivo — elegir aquí no llama a ningún proveedor.
     // Y las del selector de modelos: cualquier agente corre el mismo turno
     // guionado.
     if (control.getAttribute("role") === "option") {
-      return ["Permisos", "Modelos"].includes(control.closest('[role="listbox"]')?.getAttribute("aria-label"));
+      return dice(control.closest('[role="listbox"]')?.getAttribute("aria-label"), "chat.mode.listbox", "chat.model.listbox");
     }
     // El razonamiento es un `<select>` nativo: el navegador pinta sus
     // opciones fuera del documento, así que ni siquiera llegan a este clic.
@@ -980,15 +1098,16 @@ const PREGUNTAS = [
     // propia, así que se ubica por lo único suyo — el buscador que trae ese
     // panel y ningún otro (`ProjectPicker`, `projects.picker.search`).
     // «Nuevo proyecto…» se excluye: crear un proyecto no está guionado.
-    const selectorDeProyecto = control.closest('[role="dialog"]');
-    if (selectorDeProyecto?.querySelector('input[placeholder="Buscar carpeta"]')) {
-      return control.textContent.trim() !== "Nuevo proyecto…";
+    const selector = control.closest('[role="dialog"]');
+    const buscador = selector?.querySelector("input[placeholder]");
+    if (buscador && dice(buscador.getAttribute("placeholder"), "projects.picker.search")) {
+      return !dice(control.textContent, "projects.picker.new");
     }
 
     const region = regionDelArbol();
     if (region?.contains(control)) {
-      const texto = (control.getAttribute("aria-label") ?? control.getAttribute("title") ?? control.textContent ?? "").trim();
-      return !["Exportar chat", "Abrir carpeta", "Copiar ruta", "Ruta copiada"].includes(texto);
+      const texto = control.getAttribute("aria-label") ?? control.getAttribute("title") ?? control.textContent ?? "";
+      return !dice(texto, "code.column.export_chat", "shell.folder.open", "shell.folder.copy", "shell.folder.copied");
     }
 
     return false;
