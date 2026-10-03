@@ -12,6 +12,9 @@
  * ventana de computadora; metida a 390 px se reacomodaría en algo que no es
  * Terminus. Así que el marco tiene un ancho lógico mínimo y se reduce entero,
  * como una captura, pero viva.
+ *
+ * **La lengua la pide la página** con `?lang=`: esta landing está en español.
+ * Sin el parámetro, la demo usaría la del navegador.
  */
 const ANCHO = 1280;
 const ALTO = 800;
@@ -34,7 +37,7 @@ const ALTO = 800;
     <div class="demo__lienzo">
       <iframe
         data-demo-iframe
-        src="/demo/"
+        src="/demo/?lang=es"
         title="Terminus: la app real, con respuestas simuladas"
         width={ANCHO}
         height={ALTO}

@@ -53,6 +53,7 @@ try {
     commit,
     version: JSON.parse(readFileSync(join(temporal, "package.json"), "utf8")).version,
     comandos: tiposDeComandos(join(temporal, "src")),
+    textos: textosDelGuardia(join(temporal, "src", "locales"), readFileSync(join(landing, "demo", "simulador.js"), "utf8")),
     archivos: archivosDeLaLanding(),
   })};\n`);
   copyFileSync(join(landing, "demo", "simulador.js"), join(salida, "simulador.js"));
@@ -104,6 +105,49 @@ function tiposDeComandos(src) {
     }
   }
   return tipos;
+}
+
+/**
+ * Los rótulos que el guardia de la demo reconoce, en todas las lenguas que la
+ * app trae dentro (`src/locales/<lengua>/*.json`). El simulador los pide por
+ * clave —`rotulo("shell.sidebar.hide")`— y aquí se buscan sus textos: así el
+ * guardia vale igual con la interfaz en español que en inglés.
+ *
+ * **Una clave que ya no está en el catálogo base (`es`) rompe la
+ * compilación.** Si pasara en silencio, el botón que esa clave dejaba pasar
+ * quedaría bloqueado en la demo sin que nadie lo notara.
+ */
+function textosDelGuardia(locales, simulador) {
+  const claves = new Set();
+  for (const m of simulador.matchAll(/\b(?:rotulo|dice|empiezaCon)\(/g)) {
+    // Hasta el paréntesis que cierra la llamada, contando los de en medio:
+    // los comentarios entre argumentos también llevan paréntesis.
+    let fin = m.index + m[0].length;
+    for (let abiertos = 1; abiertos > 0 && fin < simulador.length; fin++) {
+      if (simulador[fin] === "(") abiertos++;
+      else if (simulador[fin] === ")") abiertos--;
+    }
+    const argumentos = simulador.slice(m.index + m[0].length, fin);
+    for (const c of argumentos.matchAll(/"([a-z0-9_]+(?:\.[a-z0-9_]+)+)"/g)) claves.add(c[1]);
+  }
+  const catalogos = {};
+  for (const lengua of readdirSync(locales)) {
+    const carpeta = join(locales, lengua);
+    if (!statSync(carpeta).isDirectory()) continue;
+    catalogos[lengua] = {};
+    for (const archivo of readdirSync(carpeta)) {
+      if (extname(archivo) !== ".json" || archivo === "manifiesto.json") continue;
+      Object.assign(catalogos[lengua], JSON.parse(readFileSync(join(carpeta, archivo), "utf8")));
+    }
+  }
+  const hojas = (v) => (typeof v === "string" ? [v] : v && typeof v === "object" ? Object.values(v).flatMap(hojas) : []);
+  const faltan = [...claves].filter((c) => !(c in (catalogos.es ?? {})));
+  if (faltan.length) throw new Error(`demo/simulador.js pide claves que la app ya no tiene: ${faltan.join(", ")}`);
+  const textos = {};
+  for (const clave of [...claves].sort()) {
+    textos[clave] = [...new Set(Object.values(catalogos).flatMap((c) => hojas(c[clave])))];
+  }
+  return textos;
 }
 
 /**
